@@ -2,7 +2,7 @@
 
 **awsm-http** is a modern, lightweight, and powerful HTTP client built with Tauri and React. It provides a seamless experience for testing and debugging APIs with a beautiful and intuitive user interface.
 
-![awsm-http](https://github.com/user-attachments/assets/placeholder-image.png)
+![awsm-http](https://i.ibb.co/gLrx9pBF/945shots-so.png)
 
 ## ✨ Features
 
