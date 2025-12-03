@@ -20,28 +20,21 @@ export function substituteVariables(
     if (trimmedKey.startsWith("faker.")) {
       try {
         const faker = getFaker(fakerLocale);
-        const parts = trimmedKey.split(".").slice(1); // Remove 'faker'
+        // Use new Function to allow function calls with arguments
+        // e.g. faker.internet.username({ firstName: 'Jeanne' })
+        const fn = new Function("faker", `return ${trimmedKey}`);
+        let result = fn(faker);
 
-        // Traverse the faker object
-        let current: any = faker;
-        for (const part of parts) {
-          if (current[part] === undefined) {
-            return `{{${trimmedKey}}}`; // Invalid path
-          }
-          current = current[part];
+        // If the user just referenced the function without calling it, call it now
+        if (typeof result === "function") {
+          result = result();
         }
 
-        // Execute if it's a function
-        if (typeof current === "function") {
-          return current();
-        } else {
-          return String(current);
-        }
+        return String(result);
       } catch (e) {
-        return `{{${trimmedKey}}}`; // Error executing
+        return `{{${trimmedKey}}}`; // Error executing or invalid path
       }
     }
-
     const value = variables[trimmedKey];
     return value !== undefined ? value : `{{${trimmedKey}}}`;
   });
