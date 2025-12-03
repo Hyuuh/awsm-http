@@ -19,6 +19,8 @@ import {
   EyeIcon,
   EyeOffIcon,
 } from "lucide-react";
+import { ScriptExecutor } from "@/services/script-executor";
+import { toast } from "sonner";
 
 import { RequestTabs } from "./request-tabs";
 import { ResponseViewer } from "./response-viewer";
@@ -39,7 +41,7 @@ const handleEditorDidMount = (monaco: Monaco) => {
   // Register completion provider for JSON
   monaco.languages.registerCompletionItemProvider("json", {
     triggerCharacters: ["{"],
-    provideCompletionItems: (model, position) => {
+    provideCompletionItems: (model: any, position: any) => {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
         startColumn: 1,
@@ -399,6 +401,23 @@ export function RequestEditor() {
     if (!node.data) return;
     setIsLoading(true);
 
+    // 1. Execute Pre-request Script
+    let currentVariables = { ...variables };
+    if (node.data.preRequestScript) {
+      const result = ScriptExecutor.execute(node.data.preRequestScript, {
+        variables: currentVariables,
+        request: node.data,
+      });
+
+      if (result.error) {
+        toast.error(`Pre-request script error: ${result.error}`);
+        setIsLoading(false);
+        return;
+      }
+
+      currentVariables = { ...currentVariables, ...result.variables };
+    }
+
     // Ensure we pass the full data structure including defaults if missing
     const rawRequestData = {
       ...node.data,
@@ -409,29 +428,32 @@ export function RequestEditor() {
     // Substitute variables
     const requestData = {
       ...rawRequestData,
-      url: substituteVariables(rawRequestData.url, variables),
+      url: substituteVariables(rawRequestData.url, currentVariables),
       headers: rawRequestData.headers.map((h) => ({
         ...h,
-        key: substituteVariables(h.key, variables),
-        value: substituteVariables(h.value, variables),
+        key: substituteVariables(h.key, currentVariables),
+        value: substituteVariables(h.value, currentVariables),
       })),
       params: rawRequestData.params.map((p) => ({
         ...p,
-        key: substituteVariables(p.key, variables),
-        value: substituteVariables(p.value, variables),
+        key: substituteVariables(p.key, currentVariables),
+        value: substituteVariables(p.value, currentVariables),
       })),
       body: {
         ...rawRequestData.body,
-        content: substituteVariables(rawRequestData.body.content, variables),
+        content: substituteVariables(
+          rawRequestData.body.content,
+          currentVariables
+        ),
         formData: rawRequestData.body.formData?.map((f) => ({
           ...f,
-          key: substituteVariables(f.key, variables),
-          value: substituteVariables(f.value, variables),
+          key: substituteVariables(f.key, currentVariables),
+          value: substituteVariables(f.value, currentVariables),
         })),
         formUrlEncoded: rawRequestData.body.formUrlEncoded?.map((f) => ({
           ...f,
-          key: substituteVariables(f.key, variables),
-          value: substituteVariables(f.value, variables),
+          key: substituteVariables(f.key, currentVariables),
+          value: substituteVariables(f.value, currentVariables),
         })),
       },
       auth: {
@@ -440,11 +462,11 @@ export function RequestEditor() {
           ? {
               username: substituteVariables(
                 rawRequestData.auth.basic.username || "",
-                variables
+                currentVariables
               ),
               password: substituteVariables(
                 rawRequestData.auth.basic.password || "",
-                variables
+                currentVariables
               ),
             }
           : undefined,
@@ -452,7 +474,7 @@ export function RequestEditor() {
           ? {
               token: substituteVariables(
                 rawRequestData.auth.bearer.token || "",
-                variables
+                currentVariables
               ),
             }
           : undefined,
@@ -461,31 +483,56 @@ export function RequestEditor() {
               ...rawRequestData.auth.apikey,
               key: substituteVariables(
                 rawRequestData.auth.apikey.key || "",
-                variables
+                currentVariables
               ),
               value: substituteVariables(
                 rawRequestData.auth.apikey.value || "",
-                variables
+                currentVariables
               ),
             }
           : undefined,
       },
     };
 
-    const res = await HttpClient.send(requestData);
-    setResponse(activeRequestId, res);
-    addToHistory({
-      requestId: activeRequestId,
-      method: requestData.method,
-      url: requestData.url,
-      timestamp: Date.now(),
-      status: res.status,
-      statusText: res.statusText,
-      duration: res.time,
-      size: res.size,
-      response: res,
-    });
-    setIsLoading(false);
+    try {
+      const res = await HttpClient.send(requestData);
+      setResponse(activeRequestId, res);
+
+      // 2. Execute Test Script
+      if (node.data.testScript) {
+        const result = ScriptExecutor.execute(node.data.testScript, {
+          variables: currentVariables,
+          request: requestData,
+          response: res,
+        });
+
+        if (result.error) {
+          toast.error(`Test script error: ${result.error}`);
+        }
+
+        if (result.logs.length > 0) {
+          console.log("Test Script Logs:", result.logs);
+          toast.info(`Test Logs: ${result.logs.join("\n")}`);
+        }
+      }
+
+      addToHistory({
+        requestId: activeRequestId,
+        method: requestData.method,
+        url: requestData.url,
+        timestamp: Date.now(),
+        status: res.status,
+        statusText: res.statusText,
+        duration: res.time,
+        size: res.size,
+        response: res,
+      });
+    } catch (error) {
+      toast.error("Failed to send request");
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // --- Handlers ---
@@ -684,6 +731,18 @@ export function RequestEditor() {
                   >
                     Body {body.type !== "none" && "•"}
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="pre-request"
+                    className="h-[39px] border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs px-4"
+                  >
+                    Pre-request
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tests"
+                    className="h-[39px] border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none text-xs px-4"
+                  >
+                    Tests
+                  </TabsTrigger>
                 </TabsList>
               </div>
 
@@ -874,6 +933,47 @@ export function RequestEditor() {
                     </div>
                   )}
                 </div>
+              </TabsContent>
+
+              <TabsContent value="pre-request" className="flex-1 min-h-0 m-0">
+                <Editor
+                  width="100%"
+                  height="100%"
+                  language="javascript"
+                  value={node.data.preRequestScript || ""}
+                  onChange={(val) =>
+                    updateRequestData(activeRequestId, {
+                      preRequestScript: val || "",
+                    })
+                  }
+                  theme={theme === "dark" ? "Vesper" : "VesperLight"}
+                  beforeMount={handleEditorDidMount}
+                  options={{
+                    fontSize: 14,
+                    fontFamily: "Jetbrains-Mono",
+                    minimap: { enabled: false },
+                  }}
+                />
+              </TabsContent>
+              <TabsContent value="tests" className="flex-1 min-h-0 m-0">
+                <Editor
+                  width="100%"
+                  height="100%"
+                  language="javascript"
+                  value={node.data.testScript || ""}
+                  onChange={(val) =>
+                    updateRequestData(activeRequestId, {
+                      testScript: val || "",
+                    })
+                  }
+                  theme={theme === "dark" ? "Vesper" : "VesperLight"}
+                  beforeMount={handleEditorDidMount}
+                  options={{
+                    fontSize: 14,
+                    fontFamily: "Jetbrains-Mono",
+                    minimap: { enabled: false },
+                  }}
+                />
               </TabsContent>
             </Tabs>
           </ResizablePanel>

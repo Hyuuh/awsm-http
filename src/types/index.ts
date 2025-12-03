@@ -55,6 +55,8 @@ export interface RequestData {
   headers: RequestHeader[];
   auth: RequestAuth;
   body: RequestBody;
+  preRequestScript?: string;
+  testScript?: string;
 }
 
 export interface ResponseData {

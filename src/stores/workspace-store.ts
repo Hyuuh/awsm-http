@@ -76,6 +76,15 @@ const DEFAULT_REQUEST_DATA: RequestData = {
     formData: [],
     formUrlEncoded: [],
   },
+  preRequestScript: `// Example: Set a timestamp variable
+// awsm.variables.set("timestamp", Date.now());
+// awsm.log("Timestamp set!");`,
+  testScript: `// Example: Check status code
+// if (awsm.response.status === 200) {
+//   awsm.log("Success!");
+// } else {
+//   awsm.log("Failed with status: " + awsm.response.status);
+// }`,
 };
 
 export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
