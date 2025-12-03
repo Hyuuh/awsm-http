@@ -31,11 +31,6 @@ export function VariableInput({
   );
   const activeEnv = environments.find((e) => e.id === activeEnvironmentId);
 
-  // Reset selected index when query changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [query]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     const newCursorPosition = e.target.selectionStart || 0;
@@ -50,6 +45,7 @@ export function VariableInput({
 
     if (match && activeEnv) {
       setQuery(match[1]);
+      setSelectedIndex(0);
       setOpen(true);
     } else {
       setOpen(false);
