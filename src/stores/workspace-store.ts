@@ -472,14 +472,23 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
             content:
               '{\n  "username": "admin",\n  "password": "password123"\n}',
           },
-          testScript: `// Example: Extract token and set to environment variable
-// awsm.test("Extract token", () => {
-//   const data = awsm.response.body;
-//   if (data.token) {
-//     awsm.variables.set("token", data.token);
-//     awsm.log("Token updated!");
-//   }
-// });`,
+          preRequestScript: `awsm.log("Attempting to login as admin...");
+// In a real app, you might hash the password here
+// awsm.variables.set("password_hash", hash(password));`,
+          testScript: `awsm.test("Login Successful (201 Created)", (log) => {
+  if (awsm.response.status !== 201) {
+    throw new Error("Expected 201 Created, got " + awsm.response.status);
+  }
+  log("Login successful");
+});
+
+awsm.test("Extract and set Auth Token", (log) => {
+  // JSONPlaceholder doesn't return a real token, so we simulate one
+  const mockToken = "eyJhGciOiJIUzI1Ni..." + Date.now();
+  
+  awsm.variables.set("token", mockToken);
+  log("Token extracted and saved to environment variables");
+});`,
         });
 
         const usersFolderId = addNode(wsId, "collection", "Users");
@@ -488,7 +497,12 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
           url: "https://jsonplaceholder.typicode.com/users",
           method: "GET",
           body: { type: "none", content: "" },
-          preRequestScript: `awsm.log("Fetching users list...");`,
+          preRequestScript: `const token = awsm.variables.get("token");
+if (!token) {
+  awsm.log("Warning: No auth token found. Request might fail if auth was required.");
+} else {
+  awsm.log("Using cached auth token.");
+}`,
           testScript: `awsm.test("Status code is 200", (log) => {
   if (awsm.response.status !== 200) {
     throw new Error("Expected 200 OK");
@@ -496,11 +510,22 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
   log("Status: " + awsm.response.status);
 });
 
-awsm.test("Response is array", (log) => {
-  if (!Array.isArray(awsm.response.body)) {
-    throw new Error("Expected response body to be an array");
+awsm.test("Response time < 500ms", (log) => {
+  if (awsm.response.time > 500) {
+    throw new Error("Response too slow: " + awsm.response.time + "ms");
   }
-  log("Users count: " + awsm.response.body.length);
+  log("Time: " + awsm.response.time + "ms");
+});
+
+awsm.test("Validate User Data Structure", (log) => {
+  const users = awsm.response.body;
+  if (!Array.isArray(users)) throw new Error("Body is not an array");
+  
+  if (users.length > 0) {
+    const user = users[0];
+    if (!user.email || !user.name) throw new Error("User object missing required fields");
+  }
+  log("Validated " + users.length + " users");
 });`,
         });
 
@@ -515,8 +540,34 @@ awsm.test("Response is array", (log) => {
           body: {
             type: "json",
             content:
-              '{\n  "name": "John Doe",\n  "email": "john@example.com"\n}',
+              '{\n  "name": "{{randomName}}",\n  "email": "{{randomEmail}}",\n  "company": {\n    "name": "{{randomCompany}}"\n  }\n}',
           },
+          preRequestScript: `// Generate random data for the request
+const name = awsm.faker.person.fullName();
+const email = awsm.faker.internet.email();
+const company = awsm.faker.company.name();
+
+awsm.variables.set("randomName", name);
+awsm.variables.set("randomEmail", email);
+awsm.variables.set("randomCompany", company);
+
+awsm.log("Generated user: " + name + " (" + email + ")");`,
+          testScript: `awsm.test("User Created Successfully", (log) => {
+  if (awsm.response.status !== 201) throw new Error("Failed to create user");
+  log("User created with ID: " + awsm.response.body.id);
+});
+
+awsm.test("Verify Created Data", (log) => {
+  const sentName = awsm.variables.get("randomName");
+  const receivedName = awsm.response.body.name; // JSONPlaceholder echoes back data (mostly)
+  
+  // Note: JSONPlaceholder might not echo back variables exactly if they aren't in its schema, 
+  // but for this mock we assume it does or we check what we can.
+  if (receivedName && receivedName !== sentName) {
+     throw new Error("Name mismatch! Sent: " + sentName + ", Got: " + receivedName);
+  }
+  log("Verified name matches: " + sentName);
+});`,
         });
       },
     }),
