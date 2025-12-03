@@ -8,6 +8,9 @@
 
 - **🚀 Fast & Lightweight**: Built on [Tauri](https://tauri.app/), ensuring high performance and low resource usage.
 - **🎨 Modern UI**: Crafted with [Shadcn UI](https://ui.shadcn.com/) and [Tailwind CSS](https://tailwindcss.com/) for a sleek, dark-themed aesthetic.
+- **🔌 Real-time Protocols**:
+  - **WebSocket**: Full support for raw WebSocket connections with persistent message history.
+  - **Socket.IO**: Native support for Socket.IO v4, including custom Event/Group emitting and listening.
 - **📝 Advanced Request Editor**:
   - Support for all standard HTTP methods (GET, POST, PUT, DELETE, PATCH).
   - **Params**: Easy-to-use key-value editor for query parameters.
@@ -20,7 +23,8 @@
   - Detailed headers inspection.
   - Status code, time, and size metrics.
 - **📂 Workspace Management**:
-  - Organize requests into Workspaces and Collections (Folders).
+  - Organize requests into Workspaces and Folders.
+  - **Drag & Drop**: Intuitive reordering of requests, folders, and environment variables.
   - **Environments**: Manage variables (e.g., `{{base_url}}`) across different environments.
   - **Import/Export**: Share your workspace via JSON files or import from Postman.
   - **Reset**: "Danger Zone" to wipe data and restore defaults.

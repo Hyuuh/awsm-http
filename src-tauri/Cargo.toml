@@ -1,6 +1,6 @@
 [package]
 name = "awsm-http"
-version = "0.0.3-alpha"
+version = "0.1.0-beta"
 description = "Just another HTTP client built with Tauri and React."
 authors = ["Hyuuh"]
 license = "MIT"
