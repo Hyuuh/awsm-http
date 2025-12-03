@@ -1,4 +1,4 @@
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import { SidebarItem } from "./sidebar-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -27,103 +27,21 @@ import { HistorySidebar } from "./history-sidebar";
 import { TestResultsSidebar } from "./test-results-sidebar";
 import { HistoryIcon, FolderIcon, BeakerIcon } from "lucide-react";
 
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
+import { DndContext, DragOverlay, pointerWithin } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useSidebarDnd } from "./hooks/use-sidebar-dnd";
+import { useSidebarActions } from "./hooks/use-sidebar-actions";
+import { useState } from "react";
+import { createPortal } from "react-dom";
 
 export function Sidebar() {
   const rootIds = useWorkspaceStore((state) => state.rootIds);
-  const nodes = useWorkspaceStore((state) => state.nodes);
-  const addNode = useWorkspaceStore((state) => state.addNode);
-  const moveNode = useWorkspaceStore((state) => state.moveNode);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    const activeNode = nodes[activeId];
-    const overNode = nodes[overId];
-
-    if (!activeNode || !overNode) return;
-
-    // If dropping over a collection/folder or workspace, move INTO it
-    if (
-      (overNode.type === "collection" || overNode.type === "workspace") &&
-      activeId !== overId
-    ) {
-      // Prevent workspace from being moved into anything
-      if (activeNode.type === "workspace") {
-        // Fall through to sibling reordering (only allowed if target is root)
-      } else {
-        const newParentId = overId;
-        const newIndex = overNode.children ? overNode.children.length : 0;
-        moveNode(activeId, newParentId, newIndex);
-        return;
-      }
-    }
-
-    // Moving relative to overNode (sibling)
-    const newParentId = overNode.parentId;
-
-    // Constraint: Workspaces cannot be moved into a non-root parent
-    if (activeNode.type === "workspace" && newParentId) {
-      return;
-    }
-
-    let newIndex = 0;
-
-    if (newParentId) {
-      const parent = nodes[newParentId];
-      if (parent && parent.children) {
-        newIndex = parent.children.indexOf(overId);
-      }
-    } else {
-      newIndex = rootIds.indexOf(overId);
-    }
-
-    moveNode(activeId, newParentId, newIndex);
-  };
-
-  const handleCreateRoot = (
-    type: "workspace" | "collection" | "request" | "websocket"
-  ) => {
-    addNode(
-      null,
-      type,
-      type === "workspace"
-        ? "New Workspace"
-        : type === "collection"
-        ? "New Folder"
-        : type === "request"
-        ? "New Request"
-        : "New WebSocket"
-    );
-  };
+  const { sensors, handleDragEnd } = useSidebarDnd();
+  const { handleCreateRoot } = useSidebarActions();
+  const [activeId, setActiveId] = useState<string | null>(null);
 
   return (
     <div className="h-full border-r flex flex-col">
@@ -184,8 +102,14 @@ export function Sidebar() {
                 <div className=" min-h-full">
                   <DndContext
                     sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
+                    collisionDetection={pointerWithin}
+                    onDragStart={(event) =>
+                      setActiveId(event.active.id as string)
+                    }
+                    onDragEnd={(event) => {
+                      setActiveId(null);
+                      handleDragEnd(event);
+                    }}
                   >
                     <SortableContext
                       items={rootIds}
@@ -195,6 +119,14 @@ export function Sidebar() {
                         <SidebarItem key={id} nodeId={id} level={0} />
                       ))}
                     </SortableContext>
+                    {createPortal(
+                      <DragOverlay>
+                        {activeId ? (
+                          <SidebarItem nodeId={activeId} level={0} isOverlay />
+                        ) : null}
+                      </DragOverlay>,
+                      document.body
+                    )}
                   </DndContext>
                 </div>
               </ScrollArea>

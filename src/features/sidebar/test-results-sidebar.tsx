@@ -1,4 +1,4 @@
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import { cn } from "@/lib/utils";
 import { CheckIcon, XIcon, BeakerIcon } from "lucide-react";
 import {

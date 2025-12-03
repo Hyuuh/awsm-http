@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import { useWorkspaceStore } from "@/stores/workspace-store";
-import { WebSocketClient } from "@/services/websocket-client";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
+import { WebSocketClient } from "@/features/network/services/websocket-client";
 import { WebSocketMessage } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn, substituteVariables } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { substituteVariables } from "@/features/scripting/utils/variable-substitution";
 import { SendIcon, PlugIcon, PlugZapIcon, Trash2Icon } from "lucide-react";
 import { format } from "date-fns";
 import {

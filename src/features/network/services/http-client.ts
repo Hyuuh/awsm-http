@@ -1,4 +1,4 @@
-import { RequestData, ResponseData } from "../types";
+import { RequestData, ResponseData } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
 
 interface RustResponse {

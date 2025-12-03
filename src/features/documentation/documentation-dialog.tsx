@@ -13,7 +13,7 @@ import {
   vscDarkPlus,
   vs,
 } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "@/features/theme/theme-provider";
 
 function CodeBlock({
   code,

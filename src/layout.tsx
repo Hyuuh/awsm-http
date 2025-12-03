@@ -1,4 +1,4 @@
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/features/navigation/navbar";
 import { Toaster } from "./components/ui/sonner";
 
 export default function MainLayout({

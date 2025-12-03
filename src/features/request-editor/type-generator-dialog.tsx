@@ -8,9 +8,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileJsonIcon, CopyIcon, CheckIcon } from "lucide-react";
-import { generateTypescriptInterfaces } from "@/lib/code-generators";
+import { generateTypescriptInterfaces } from "@/features/request-editor/utils/code-generators";
 import { Editor, type Monaco } from "@monaco-editor/react";
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "@/features/theme/theme-provider";
 import { VesperTheme } from "./themes/vesper";
 import { VesperLightTheme } from "./themes/vesper-light";
 

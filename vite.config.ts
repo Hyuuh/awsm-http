@@ -33,4 +33,30 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"],
+          "ui-vendor": [
+            "@radix-ui/react-alert-dialog",
+            "@radix-ui/react-popover",
+            "@radix-ui/react-separator",
+            "@radix-ui/react-slot",
+            "class-variance-authority",
+            "clsx",
+            "cmdk",
+            "lucide-react",
+            "tailwind-merge",
+          ],
+          "monaco-editor": ["@monaco-editor/react"],
+          "dnd-kit": [
+            "@dnd-kit/core",
+            "@dnd-kit/sortable",
+            "@dnd-kit/utilities",
+          ],
+        },
+      },
+    },
+  },
 }));

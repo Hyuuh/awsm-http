@@ -17,8 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { getFaker } from "@/services/faker-service";
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { getFaker } from "@/features/scripting/services/faker-service";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import { SearchIcon } from "lucide-react";
 
 interface FakerGeneratorDialogProps {

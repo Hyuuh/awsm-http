@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
-import { useTheme } from "@/components/theme-provider";
+import { useTheme } from "@/features/theme/theme-provider";
 import {
   MoonIcon,
   SunIcon,
@@ -27,8 +27,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { useWorkspaceStore } from "@/stores/workspace-store";
-import { AVAILABLE_LOCALES } from "@/services/faker-service";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
+import { AVAILABLE_LOCALES } from "@/features/scripting/services/faker-service";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {

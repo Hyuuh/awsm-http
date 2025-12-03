@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NodeType } from "@/types";
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import {
   ChevronRightIcon,
   ChevronDownIcon,
@@ -41,18 +41,24 @@ import { Badge } from "@/components/ui/badge";
 interface SidebarItemProps {
   nodeId: string;
   level?: number;
+  isOverlay?: boolean;
 }
 
-export function SidebarItem({ nodeId, level = 0 }: SidebarItemProps) {
+export const SidebarItem = React.memo(function SidebarItem({
+  nodeId,
+  level = 0,
+  isOverlay = false,
+}: SidebarItemProps) {
   const node = useWorkspaceStore((state) => state.nodes[nodeId]);
-  const activeRequestId = useWorkspaceStore((state) => state.activeRequestId);
-  const {
-    toggleExpand,
-    setActiveRequest,
-    addNode,
-    deleteNode,
-    updateNodeName,
-  } = useWorkspaceStore();
+  const isActive = useWorkspaceStore(
+    (state) => state.activeRequestId === nodeId
+  );
+
+  const toggleExpand = useWorkspaceStore((state) => state.toggleExpand);
+  const setActiveRequest = useWorkspaceStore((state) => state.setActiveRequest);
+  const addNode = useWorkspaceStore((state) => state.addNode);
+  const deleteNode = useWorkspaceStore((state) => state.deleteNode);
+  const updateNodeName = useWorkspaceStore((state) => state.updateNodeName);
 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(node?.name || "");
@@ -69,13 +75,29 @@ export function SidebarItem({ nodeId, level = 0 }: SidebarItemProps) {
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.3 : 1,
   };
 
   if (!node) return null;
 
+  if (isOverlay) {
+    return (
+      <div className="flex items-center gap-1 px-2 py-1 bg-background border rounded shadow-lg opacity-90 w-max min-w-[150px]">
+        {node.type === "collection" ? (
+          <FolderIcon className="size-4 text-blue-500" />
+        ) : node.type === "request" ? (
+          <span className="text-[10px] font-bold w-8">{node.data?.method}</span>
+        ) : node.type === "websocket" ? (
+          <PlugIcon className="size-4 text-purple-500" />
+        ) : (
+          <BoxIcon className="size-4" />
+        )}
+        <span className="text-sm truncate">{node.name}</span>
+      </div>
+    );
+  }
+
   const isExpanded = node.isExpanded;
-  const isActive = activeRequestId === nodeId;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -298,4 +320,4 @@ export function SidebarItem({ nodeId, level = 0 }: SidebarItemProps) {
       )}
     </div>
   );
-}
+});

@@ -9,7 +9,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import { FileJsonIcon, FolderIcon, BoxIcon, SettingsIcon } from "lucide-react";
 import { TreeNode } from "@/types";
 

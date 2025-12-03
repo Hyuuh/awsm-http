@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import {
   Dialog,
   DialogContent,

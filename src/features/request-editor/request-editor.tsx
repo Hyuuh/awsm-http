@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
-import { useWorkspaceStore } from "@/stores/workspace-store";
-import { HttpClient } from "@/services/http-client";
+import { useState, useEffect, useCallback } from "react";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,177 +9,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  PlayIcon,
-  PlusIcon,
-  Trash2Icon,
-  RocketIcon,
-  EyeIcon,
-  EyeOffIcon,
-  GripVerticalIcon,
-} from "lucide-react";
-import { ScriptExecutor } from "@/services/script-executor";
-import { toast } from "sonner";
+import { PlayIcon, RocketIcon } from "lucide-react";
 
 import { RequestTabs } from "./request-tabs";
 import { ResponseViewer } from "./response-viewer";
-import { HttpMethod, RequestAuth, RequestBody } from "@/types";
+import { HttpMethod, RequestBody } from "@/types";
 import { v4 as uuidv4 } from "uuid";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Editor, type Monaco } from "@monaco-editor/react";
-import { VesperTheme } from "./themes/vesper";
-import { VesperLightTheme } from "./themes/vesper-light";
-import { useTheme } from "@/components/theme-provider";
-import { getFaker } from "@/services/faker-service";
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-
-const handleEditorDidMount = (monaco: Monaco) => {
-  monaco.editor.defineTheme("Vesper", VesperTheme as any);
-  monaco.editor.defineTheme("VesperLight", VesperLightTheme as any);
-
-  // Generate Faker type definition
-  const faker = getFaker("en");
-  let fakerTypeProps = "";
-
-  try {
-    const modules = Object.keys(faker).filter(
-      (k) => typeof (faker as any)[k] === "object"
-    );
-
-    modules.forEach((moduleName) => {
-      const moduleObj = (faker as any)[moduleName];
-      let methods = "";
-      Object.keys(moduleObj).forEach((methodName) => {
-        if (typeof moduleObj[methodName] === "function") {
-          methods += `      ${methodName}(): string;\n`;
-        }
-      });
-      if (methods) {
-        fakerTypeProps += `    ${moduleName}: {\n${methods}    };\n`;
-      }
-    });
-  } catch (e) {
-    console.error("Failed to generate faker types", e);
-  }
-
-  // Add type definitions for 'awsm' global in JavaScript
-  monaco.languages.typescript.javascriptDefaults.addExtraLib(
-    `
-    /**
-     * The global object available in Pre-request and Test scripts.
-     */
-    declare const awsm: {
-      variables: {
-        /** Get an environment variable */
-        get(key: string): string | undefined;
-        /** Set an environment variable */
-        set(key: string, value: string): void;
-      };
-      /** Log messages to the console and toast */
-      log(...args: any[]): void;
-      /** The current request object */
-      request?: {
-        url: string;
-        method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-        headers: Array<{ key: string; value: string; enabled: boolean }>;
-        body: {
-          type: "json" | "text" | "xml" | "html" | "form-data" | "x-www-form-urlencoded" | "binary" | "none";
-          content: string;
-        };
-      };
-      /** The response object (only available in Test scripts) */
-      response?: {
-        status: number;
-        statusText: string;
-        time: number;
-        size: number;
-        headers: Record<string, string>;
-        body: any;
-        rawBody: string;
-      };
-      /**
-       * Define a test case.
-       * @param name The name of the test
-       * @param callback The function to execute. Receives a log function to set a description.
-       */
-      test(name: string, callback: (log: (message: string) => void) => void): void;
-      /** Faker instance for generating random data */
-      faker: {
-${fakerTypeProps}
-      };
-    };
-    `,
-    "ts:filename/awsm.d.ts"
-  );
-
-  // Register completion provider for JSON
-  monaco.languages.registerCompletionItemProvider("json", {
-    triggerCharacters: ["{", "."],
-    provideCompletionItems: (model: any, position: any) => {
-      const textUntilPosition = model.getValueInRange({
-        startLineNumber: position.lineNumber,
-        startColumn: 1,
-        endLineNumber: position.lineNumber,
-        endColumn: position.column,
-      });
-
-      // Environment variables
-      if (textUntilPosition.endsWith("{{")) {
-        const state = useWorkspaceStore.getState();
-        const activeEnv = state.environments.find(
-          (e) => e.id === state.activeEnvironmentId
-        );
-        const globalVariables = state.globalVariables || [];
-
-        const suggestions: any[] = [];
-
-        // Add global variables
-        suggestions.push(
-          ...globalVariables.map((v) => ({
-            label: v.key,
-            kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: v.key + "}}",
-            detail: `Global: ${v.value}`,
-          }))
-        );
-
-        if (activeEnv) {
-          suggestions.push(
-            ...activeEnv.variables.map((v) => ({
-              label: v.key,
-              kind: monaco.languages.CompletionItemKind.Variable,
-              insertText: v.key + "}}",
-              detail: `Env: ${v.value}`,
-            }))
-          );
-        }
-
-        return { suggestions };
-      }
-
-      return { suggestions: [] };
-    },
-  });
-};
-
+import { Editor } from "@monaco-editor/react";
+import { useTheme } from "@/features/theme/theme-provider";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -194,532 +29,15 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { substituteVariables } from "@/lib/utils";
 import { VariableInput } from "@/components/variable-input";
 import { CodeGeneratorDialog } from "./code-generator-dialog";
 import { FakerGeneratorDialog } from "./faker-generator-dialog";
 import { WebSocketEditor } from "./websocket-editor";
-
-// --- Helper Components ---
-
-function KeyValueTable({
-  items,
-  onUpdate,
-  onAdd,
-  onRemove,
-  onReorder,
-  keyPlaceholder = "Key",
-  valuePlaceholder = "Value",
-}: {
-  items: {
-    id: string;
-    key: string;
-    value: string;
-    enabled: boolean;
-    description?: string;
-  }[];
-  onUpdate: (id: string, field: string, value: any) => void;
-  onAdd: () => void;
-  onRemove: (id: string) => void;
-  onReorder?: (newItems: any[]) => void;
-  keyPlaceholder?: string;
-  valuePlaceholder?: string;
-}) {
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id || !onReorder) return;
-
-    const oldIndex = items.findIndex((item) => item.id === active.id);
-    const newIndex = items.findIndex((item) => item.id === over.id);
-
-    if (oldIndex !== -1 && newIndex !== -1) {
-      onReorder(arrayMove(items, oldIndex, newIndex));
-    }
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between mb-2">
-        <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          Key / Value List
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onAdd}
-          className="h-6 text-xs"
-        >
-          <PlusIcon size={12} className="mr-1" /> Add
-        </Button>
-      </div>
-      <div className="space-y-1">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={items} strategy={verticalListSortingStrategy}>
-            {items.map((item) => (
-              <SortableRow
-                key={item.id}
-                item={item}
-                onUpdate={onUpdate}
-                onRemove={onRemove}
-                keyPlaceholder={keyPlaceholder}
-                valuePlaceholder={valuePlaceholder}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-      </div>
-      {items.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground text-sm border border-dashed rounded-md bg-muted/5">
-          No items.{" "}
-          <span
-            className="text-primary cursor-pointer hover:underline"
-            onClick={onAdd}
-          >
-            Add one
-          </span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AuthEditor({
-  auth,
-  onChange,
-}: {
-  auth: RequestAuth;
-  onChange: (a: RequestAuth) => void;
-}) {
-  const [showPassword, setShowPassword] = useState(false);
-
-  const handleGetToken = async () => {
-    if (!auth.oauth2) return;
-    const { grantType, accessTokenUrl, clientId, clientSecret, scope } =
-      auth.oauth2;
-
-    if (grantType === "client_credentials") {
-      if (!accessTokenUrl || !clientId || !clientSecret) {
-        toast.error("Please fill in all required fields");
-        return;
-      }
-
-      try {
-        const body = new URLSearchParams();
-        body.append("grant_type", "client_credentials");
-        body.append("client_id", clientId);
-        body.append("client_secret", clientSecret);
-        if (scope) body.append("scope", scope);
-
-        const res = await HttpClient.send({
-          url: accessTokenUrl,
-          method: "POST",
-          headers: [
-            {
-              key: "Content-Type",
-              value: "application/x-www-form-urlencoded",
-              enabled: true,
-              id: "1",
-            },
-          ],
-          body: { type: "x-www-form-urlencoded", content: body.toString() },
-          params: [],
-          auth: { type: "none" },
-        } as any);
-
-        if (res.status === 200 && res.body) {
-          const data = res.body as any;
-          if (data.access_token) {
-            onChange({
-              ...auth,
-              oauth2: { ...auth.oauth2, token: data.access_token },
-            });
-            toast.success("Access Token received!");
-          } else {
-            toast.error("No access token in response");
-          }
-        } else {
-          toast.error("Failed to get token: " + res.statusText);
-        }
-      } catch (e) {
-        toast.error("Error fetching token");
-      }
-    } else {
-      toast.info(
-        "Authorization Code flow not fully implemented yet. Please use external browser."
-      );
-    }
-  };
-
-  return (
-    <div className="space-y-6 p-1">
-      <div className="space-y-2">
-        <Label>Authorization Type</Label>
-        <Select
-          value={auth.type}
-          onValueChange={(v: any) => onChange({ ...auth, type: v })}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Select Auth Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">No Auth</SelectItem>
-            <SelectItem value="basic">Basic Auth</SelectItem>
-            <SelectItem value="bearer">Bearer Token</SelectItem>
-            <SelectItem value="apikey">API Key</SelectItem>
-            <SelectItem value="oauth2">OAuth 2.0</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {auth.type === "basic" && (
-        <div className="grid gap-4 max-w-md animate-in fade-in slide-in-from-top-2">
-          <div className="space-y-2">
-            <Label>Username</Label>
-            <Input
-              value={auth.basic?.username || ""}
-              onChange={(e) =>
-                onChange({
-                  ...auth,
-                  basic: { ...auth.basic, username: e.target.value },
-                })
-              }
-              placeholder="Username"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Password</Label>
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                value={auth.basic?.password || ""}
-                onChange={(e) =>
-                  onChange({
-                    ...auth,
-                    basic: { ...auth.basic, password: e.target.value },
-                  })
-                }
-                placeholder="Password"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOffIcon size={14} />
-                ) : (
-                  <EyeIcon size={14} />
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {auth.type === "bearer" && (
-        <div className="space-y-2 max-w-md animate-in fade-in slide-in-from-top-2">
-          <Label>Token</Label>
-          <Input
-            value={auth.bearer?.token || ""}
-            onChange={(e) =>
-              onChange({
-                ...auth,
-                bearer: { ...auth.bearer, token: e.target.value },
-              })
-            }
-            placeholder="Bearer Token"
-          />
-        </div>
-      )}
-
-      {auth.type === "oauth2" && (
-        <div className="space-y-4 max-w-md animate-in fade-in slide-in-from-top-2">
-          <div className="space-y-2">
-            <Label>Grant Type</Label>
-            <Select
-              value={auth.oauth2?.grantType || "client_credentials"}
-              onValueChange={(v: any) =>
-                onChange({
-                  ...auth,
-                  oauth2: { ...auth.oauth2, grantType: v } as any,
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="client_credentials">
-                  Client Credentials
-                </SelectItem>
-                <SelectItem value="authorization_code">
-                  Authorization Code
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {auth.oauth2?.grantType === "authorization_code" && (
-            <div className="space-y-2">
-              <Label>Callback URL</Label>
-              <Input
-                value={auth.oauth2?.redirectUrl || ""}
-                onChange={(e) =>
-                  onChange({
-                    ...auth,
-                    oauth2: {
-                      ...auth.oauth2,
-                      redirectUrl: e.target.value,
-                    } as any,
-                  })
-                }
-                placeholder="https://..."
-              />
-              <Label>Auth URL</Label>
-              <Input
-                value={auth.oauth2?.authUrl || ""}
-                onChange={(e) =>
-                  onChange({
-                    ...auth,
-                    oauth2: { ...auth.oauth2, authUrl: e.target.value } as any,
-                  })
-                }
-                placeholder="https://..."
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>Access Token URL</Label>
-            <Input
-              value={auth.oauth2?.accessTokenUrl || ""}
-              onChange={(e) =>
-                onChange({
-                  ...auth,
-                  oauth2: {
-                    ...auth.oauth2,
-                    accessTokenUrl: e.target.value,
-                  } as any,
-                })
-              }
-              placeholder="https://..."
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Client ID</Label>
-              <Input
-                value={auth.oauth2?.clientId || ""}
-                onChange={(e) =>
-                  onChange({
-                    ...auth,
-                    oauth2: { ...auth.oauth2, clientId: e.target.value } as any,
-                  })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Client Secret</Label>
-              <Input
-                type="password"
-                value={auth.oauth2?.clientSecret || ""}
-                onChange={(e) =>
-                  onChange({
-                    ...auth,
-                    oauth2: {
-                      ...auth.oauth2,
-                      clientSecret: e.target.value,
-                    } as any,
-                  })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Scope</Label>
-            <Input
-              value={auth.oauth2?.scope || ""}
-              onChange={(e) =>
-                onChange({
-                  ...auth,
-                  oauth2: { ...auth.oauth2, scope: e.target.value } as any,
-                })
-              }
-              placeholder="scope1 scope2"
-            />
-          </div>
-
-          <Button onClick={handleGetToken} className="w-full">
-            Get New Access Token
-          </Button>
-
-          <div className="space-y-2">
-            <Label>Current Token</Label>
-            <Input
-              value={auth.oauth2?.token || ""}
-              readOnly
-              className="bg-muted"
-              placeholder="Token will appear here..."
-            />
-          </div>
-        </div>
-      )}
-
-      {auth.type === "apikey" && (
-        <div className="grid gap-4 max-w-md animate-in fade-in slide-in-from-top-2">
-          <div className="space-y-2">
-            <Label>Key</Label>
-            <Input
-              value={auth.apikey?.key || ""}
-              onChange={(e) =>
-                onChange({
-                  ...auth,
-                  apikey: { ...auth.apikey, key: e.target.value },
-                })
-              }
-              placeholder="Key"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Value</Label>
-            <Input
-              value={auth.apikey?.value || ""}
-              onChange={(e) =>
-                onChange({
-                  ...auth,
-                  apikey: { ...auth.apikey, value: e.target.value },
-                })
-              }
-              placeholder="Value"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Add To</Label>
-            <Select
-              value={auth.apikey?.addTo || "header"}
-              onValueChange={(v: any) =>
-                onChange({ ...auth, apikey: { ...auth.apikey, addTo: v } })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="header">Header</SelectItem>
-                <SelectItem value="query">Query Params</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      )}
-
-      {auth.type === "none" && (
-        <div className="text-muted-foreground text-sm italic">
-          This request does not use any authorization.
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SortableRow({
-  item,
-  onUpdate,
-  onRemove,
-  keyPlaceholder,
-  valuePlaceholder,
-}: {
-  item: {
-    id: string;
-    key: string;
-    value: string;
-    enabled: boolean;
-    description?: string;
-  };
-  onUpdate: (id: string, field: string, value: any) => void;
-  onRemove: (id: string) => void;
-  keyPlaceholder?: string;
-  valuePlaceholder?: string;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: item.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-start gap-2 group"
-    >
-      <div
-        {...attributes}
-        {...listeners}
-        className="mt-2.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
-      >
-        <GripVerticalIcon size={14} />
-      </div>
-      <Checkbox
-        checked={item.enabled}
-        onCheckedChange={(c) => onUpdate(item.id, "enabled", c)}
-        className="mt-2.5"
-      />
-      <div className="flex-1 grid grid-cols-2 gap-2">
-        <VariableInput
-          placeholder={keyPlaceholder}
-          value={item.key}
-          onChange={(e) => onUpdate(item.id, "key", e.target.value)}
-          className="h-8 text-sm font-mono"
-        />
-        <VariableInput
-          placeholder={valuePlaceholder}
-          value={item.value}
-          onChange={(e) => onUpdate(item.id, "value", e.target.value)}
-          className="h-8 text-sm font-mono"
-        />
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={() => onRemove(item.id)}
-      >
-        <Trash2Icon
-          size={14}
-          className="text-muted-foreground hover:text-red-500"
-        />
-      </Button>
-    </div>
-  );
-}
+import { KeyValueTable } from "./components/key-value-table";
+import { AuthEditor } from "./components/auth-editor";
+import { BodyEditor } from "./components/body-editor";
+import { useRequestExecution } from "./hooks/use-request-execution";
+import { handleEditorDidMount } from "./utils/monaco-config";
 
 export function RequestEditor() {
   const [is2XL, setIs2XL] = useState(false);
@@ -743,42 +61,12 @@ export function RequestEditor() {
   const updateRequestData = useWorkspaceStore(
     (state) => state.updateRequestData
   );
-  const setResponse = useWorkspaceStore((state) => state.setResponse);
-  const addToHistory = useWorkspaceStore((state) => state.addToHistory);
   const response = useWorkspaceStore((state) =>
     activeRequestId ? state.responses[activeRequestId] : null
   );
 
-  const environments = useWorkspaceStore((state) => state.environments);
-  const globalVariables = useWorkspaceStore(
-    (state) => state.globalVariables || []
-  );
-  const activeEnvironmentId = useWorkspaceStore(
-    (state) => state.activeEnvironmentId
-  );
-  const fakerLocale = useWorkspaceStore((state) => state.fakerLocale);
-
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Prepare variables for substitution
-  const activeEnv = environments.find((e) => e.id === activeEnvironmentId);
-  const variables: Record<string, string> = {};
-
-  // 1. Add global variables
-  globalVariables.forEach((v) => {
-    if (v.enabled) {
-      variables[v.key] = v.value;
-    }
-  });
-
-  // 2. Override with active environment variables
-  if (activeEnv) {
-    activeEnv.variables.forEach((v) => {
-      if (v.enabled) {
-        variables[v.key] = v.value;
-      }
-    });
-  }
+  const { isLoading, executeRequest, variables, fakerLocale } =
+    useRequestExecution(activeRequestId, node?.data);
 
   const isValidRequest = node?.type === "request" && !!node.data;
   const isValidWebSocket = node?.type === "websocket" && !!node.wsData;
@@ -824,278 +112,67 @@ export function RequestEditor() {
 
   if (!node.data) return null; // Should not happen if type check passes, but safe guard
 
-  const handleSend = async () => {
-    if (!node.data) return;
-    setIsLoading(true);
-
-    let allLogs: string[] = [];
-
-    // 1. Execute Pre-request Script
-    let currentVariables = { ...variables };
-    if (node.data.preRequestScript) {
-      const result = ScriptExecutor.execute(node.data.preRequestScript, {
-        variables: currentVariables,
-        request: node.data,
-        fakerLocale,
-      });
-
-      if (result.logs) {
-        allLogs.push(...result.logs);
-      }
-
-      if (result.error) {
-        toast.error(`Pre-request script error: ${result.error}`);
-        setIsLoading(false);
-        return;
-      }
-
-      currentVariables = { ...currentVariables, ...result.variables };
-    }
-
-    // Ensure we pass the full data structure including defaults if missing
-    const rawRequestData = {
-      ...node.data,
-      auth: node.data.auth || { type: "none" },
-      params: node.data.params || [],
-    };
-
-    // Substitute variables
-    const requestData = {
-      ...rawRequestData,
-      url: substituteVariables(
-        rawRequestData.url,
-        currentVariables,
-        fakerLocale
-      ),
-      headers: rawRequestData.headers.map((h) => ({
-        ...h,
-        key: substituteVariables(h.key, currentVariables, fakerLocale),
-        value: substituteVariables(h.value, currentVariables, fakerLocale),
-      })),
-      params: rawRequestData.params.map((p) => ({
-        ...p,
-        key: substituteVariables(p.key, currentVariables, fakerLocale),
-        value: substituteVariables(p.value, currentVariables, fakerLocale),
-      })),
-      body: {
-        ...rawRequestData.body,
-        content: substituteVariables(
-          rawRequestData.body.content,
-          currentVariables,
-          fakerLocale
-        ),
-        formData: rawRequestData.body.formData?.map((f) => ({
-          ...f,
-          key: substituteVariables(f.key, currentVariables, fakerLocale),
-          value: substituteVariables(f.value, currentVariables, fakerLocale),
-        })),
-        formUrlEncoded: rawRequestData.body.formUrlEncoded?.map((f) => ({
-          ...f,
-          key: substituteVariables(f.key, currentVariables, fakerLocale),
-          value: substituteVariables(f.value, currentVariables, fakerLocale),
-        })),
-      },
-      auth: {
-        ...rawRequestData.auth,
-        basic: rawRequestData.auth.basic
-          ? {
-              username: substituteVariables(
-                rawRequestData.auth.basic.username || "",
-                currentVariables,
-                fakerLocale
-              ),
-              password: substituteVariables(
-                rawRequestData.auth.basic.password || "",
-                currentVariables,
-                fakerLocale
-              ),
-            }
-          : undefined,
-        bearer: rawRequestData.auth.bearer
-          ? {
-              token: substituteVariables(
-                rawRequestData.auth.bearer.token || "",
-                currentVariables,
-                fakerLocale
-              ),
-            }
-          : undefined,
-        apikey: rawRequestData.auth.apikey
-          ? {
-              ...rawRequestData.auth.apikey,
-              key: substituteVariables(
-                rawRequestData.auth.apikey.key || "",
-                currentVariables,
-                fakerLocale
-              ),
-              value: substituteVariables(
-                rawRequestData.auth.apikey.value || "",
-                currentVariables,
-                fakerLocale
-              ),
-            }
-          : undefined,
-      },
-    };
-
-    try {
-      const res = await HttpClient.send(requestData);
-
-      // 2. Execute Test Script
-      let testResults: any[] = [];
-      if (node.data.testScript) {
-        const result = ScriptExecutor.execute(node.data.testScript, {
-          variables: currentVariables,
-          request: requestData,
-          response: res,
-          fakerLocale,
-        });
-
-        if (result.logs) {
-          allLogs.push(...result.logs);
-        }
-
-        testResults = result.testResults;
-        if (result.error) {
-          toast.error(`Test script error: ${result.error}`);
-        }
-      }
-
-      setResponse(activeRequestId, { ...res, testResults, logs: allLogs });
-      toast.success("Request completed successfully");
-
-      addToHistory({
-        requestId: activeRequestId,
-        method: requestData.method,
-        url: requestData.url,
-        timestamp: Date.now(),
-        status: res.status,
-        statusText: res.statusText,
-        duration: res.time,
-        size: res.size,
-        response: { ...res, testResults, logs: allLogs },
-      });
-    } catch (error) {
-      toast.error("Failed to send request");
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // --- Handlers ---
 
-  const updateParams = (id: string, field: string, value: any) => {
-    const newParams = params.map((p) =>
-      p.id === id ? { ...p, [field]: value } : p
-    );
-    updateRequestData(activeRequestId, { params: newParams });
-    // TODO: Sync with URL
-  };
+  const updateParams = useCallback(
+    (id: string, field: string, value: any) => {
+      const newParams = params.map((p) =>
+        p.id === id ? { ...p, [field]: value } : p
+      );
+      updateRequestData(activeRequestId, { params: newParams });
+      // TODO: Sync with URL
+    },
+    [params, activeRequestId, updateRequestData]
+  );
 
-  const addParam = () => {
+  const addParam = useCallback(() => {
     const newParams = [
       ...params,
       { id: uuidv4(), key: "", value: "", enabled: true },
     ];
     updateRequestData(activeRequestId, { params: newParams });
-  };
+  }, [params, activeRequestId, updateRequestData]);
 
-  const removeParam = (id: string) => {
-    const newParams = params.filter((p) => p.id !== id);
-    updateRequestData(activeRequestId, { params: newParams });
-  };
+  const removeParam = useCallback(
+    (id: string) => {
+      const newParams = params.filter((p) => p.id !== id);
+      updateRequestData(activeRequestId, { params: newParams });
+    },
+    [params, activeRequestId, updateRequestData]
+  );
 
-  const updateHeader = (id: string, field: string, value: any) => {
-    const newHeaders = headers.map((h) =>
-      h.id === id ? { ...h, [field]: value } : h
-    );
-    updateRequestData(activeRequestId, { headers: newHeaders });
-  };
+  const updateHeader = useCallback(
+    (id: string, field: string, value: any) => {
+      const newHeaders = headers.map((h) =>
+        h.id === id ? { ...h, [field]: value } : h
+      );
+      updateRequestData(activeRequestId, { headers: newHeaders });
+    },
+    [headers, activeRequestId, updateRequestData]
+  );
 
-  const addHeader = () => {
+  const addHeader = useCallback(() => {
     const newHeaders = [
       ...headers,
       { id: uuidv4(), key: "", value: "", enabled: true },
     ];
     updateRequestData(activeRequestId, { headers: newHeaders });
-  };
+  }, [headers, activeRequestId, updateRequestData]);
 
-  const removeHeader = (id: string) => {
-    const newHeaders = headers.filter((h) => h.id !== id);
-    updateRequestData(activeRequestId, { headers: newHeaders });
-  };
+  const removeHeader = useCallback(
+    (id: string) => {
+      const newHeaders = headers.filter((h) => h.id !== id);
+      updateRequestData(activeRequestId, { headers: newHeaders });
+    },
+    [headers, activeRequestId, updateRequestData]
+  );
 
-  const updateFormData = (id: string, field: string, value: any) => {
-    const currentFormData = body.formData || [];
-    const newFormData = currentFormData.map((f) =>
-      f.id === id ? { ...f, [field]: value } : f
-    );
-    updateRequestData(activeRequestId, {
-      body: { ...body, formData: newFormData },
-    });
-  };
-
-  const addFormData = () => {
-    const currentFormData = body.formData || [];
-    const newFormData = [
-      ...currentFormData,
-      {
-        id: uuidv4(),
-        key: "",
-        value: "",
-        type: "text" as const,
-        enabled: true,
-      },
-    ];
-    updateRequestData(activeRequestId, {
-      body: { ...body, formData: newFormData },
-    });
-  };
-
-  const removeFormData = (id: string) => {
-    const currentFormData = body.formData || [];
-    const newFormData = currentFormData.filter((f) => f.id !== id);
-    updateRequestData(activeRequestId, {
-      body: { ...body, formData: newFormData },
-    });
-  };
-
-  const updateFormUrlEncoded = (id: string, field: string, value: any) => {
-    const currentForm = body.formUrlEncoded || [];
-    const newForm = currentForm.map((f) =>
-      f.id === id ? { ...f, [field]: value } : f
-    );
-    updateRequestData(activeRequestId, {
-      body: { ...body, formUrlEncoded: newForm },
-    });
-  };
-
-  const addFormUrlEncoded = () => {
-    const currentForm = body.formUrlEncoded || [];
-    const newForm = [
-      ...currentForm,
-      { id: uuidv4(), key: "", value: "", enabled: true },
-    ];
-    updateRequestData(activeRequestId, {
-      body: { ...body, formUrlEncoded: newForm },
-    });
-  };
-
-  const removeFormUrlEncoded = (id: string) => {
-    const currentForm = body.formUrlEncoded || [];
-    const newForm = currentForm.filter((f) => f.id !== id);
-    updateRequestData(activeRequestId, {
-      body: { ...body, formUrlEncoded: newForm },
-    });
-  };
-
-  const handleEditorMount = (editor: any, monaco: any) => {
+  const handleEditorMount = useCallback((editor: any, monaco: any) => {
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
       setActiveEditor(editor);
       setIsFakerDialogOpen(true);
     });
-  };
+  }, []);
 
   const handleFakerInsert = (text: string) => {
     if (activeEditor) {
@@ -1165,7 +242,7 @@ export function RequestEditor() {
           }
         />
 
-        <Button onClick={handleSend} disabled={isLoading} className="w-24">
+        <Button onClick={executeRequest} disabled={isLoading} className="w-24">
           {isLoading ? (
             "Sending..."
           ) : (
@@ -1277,165 +354,15 @@ export function RequestEditor() {
                 value="body"
                 className="flex-1 min-h-0 m-0 p-0 flex flex-col"
               >
-                <div className="p-2 border-b bg-muted/10 flex items-center gap-2">
-                  <RadioGroup
-                    value={body.type}
-                    onValueChange={(v: any) =>
-                      updateRequestData(activeRequestId, {
-                        body: { ...body, type: v },
-                      })
-                    }
-                    className="flex items-center gap-4"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="none" id="none" />
-                      <Label htmlFor="none" className="text-xs cursor-pointer">
-                        None
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="json" id="json" />
-                      <Label htmlFor="json" className="text-xs cursor-pointer">
-                        JSON
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="form-data" id="form-data" />
-                      <Label
-                        htmlFor="form-data"
-                        className="text-xs cursor-pointer"
-                      >
-                        Form Data
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem
-                        value="x-www-form-urlencoded"
-                        id="x-www-form-urlencoded"
-                      />
-                      <Label
-                        htmlFor="x-www-form-urlencoded"
-                        className="text-xs cursor-pointer"
-                      >
-                        x-www-form
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="text" id="text" />
-                      <Label htmlFor="text" className="text-xs cursor-pointer">
-                        Raw
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-
-                <div className="flex-1 relative overflow-hidden">
-                  {body.type === "json" && (
-                    <Editor
-                      width="100%"
-                      height="100%"
-                      language="json"
-                      value={body.content}
-                      onChange={(val) =>
-                        updateRequestData(activeRequestId, {
-                          body: { ...body, content: val! },
-                        })
-                      }
-                      theme={editorTheme}
-                      beforeMount={handleEditorDidMount}
-                      onMount={handleEditorMount}
-                      options={{
-                        fontSize: 14,
-                        fontFamily: "Jetbrains-Mono",
-                        fontLigatures: true,
-                        wordWrap: "on",
-                        minimap: {
-                          enabled: false,
-                        },
-                        bracketPairColorization: {
-                          enabled: true,
-                        },
-                        cursorBlinking: "expand",
-                        formatOnPaste: true,
-                        suggest: {
-                          showFields: false,
-                          showFunctions: false,
-                        },
-                      }}
-                      className="h-full text-sm"
-                    />
-                  )}
-                  {body.type === "text" && (
-                    <Editor
-                      width="100%"
-                      height="100%"
-                      language="plaintext"
-                      value={body.content}
-                      onChange={(val) =>
-                        updateRequestData(activeRequestId, {
-                          body: { ...body, content: val || "" },
-                        })
-                      }
-                      theme={editorTheme}
-                      beforeMount={handleEditorDidMount}
-                      onMount={handleEditorMount}
-                      options={{
-                        fontSize: 14,
-                        fontFamily: "Jetbrains-Mono",
-                        fontLigatures: true,
-                        wordWrap: "on",
-                        minimap: {
-                          enabled: false,
-                        },
-                        bracketPairColorization: {
-                          enabled: true,
-                        },
-                        cursorBlinking: "expand",
-                        formatOnPaste: true,
-                        suggest: {
-                          showFields: false,
-                          showFunctions: false,
-                        },
-                      }}
-                      className="h-full text-sm"
-                    />
-                  )}
-                  {body.type === "form-data" && (
-                    <div className="p-4">
-                      <KeyValueTable
-                        items={body.formData || []}
-                        onUpdate={updateFormData}
-                        onAdd={addFormData}
-                        onRemove={removeFormData}
-                        onReorder={(newItems) =>
-                          updateRequestData(activeRequestId, {
-                            body: { ...body, formData: newItems },
-                          })
-                        }
-                      />
-                    </div>
-                  )}
-                  {body.type === "x-www-form-urlencoded" && (
-                    <div className="p-4">
-                      <KeyValueTable
-                        items={body.formUrlEncoded || []}
-                        onUpdate={updateFormUrlEncoded}
-                        onAdd={addFormUrlEncoded}
-                        onRemove={removeFormUrlEncoded}
-                        onReorder={(newItems) =>
-                          updateRequestData(activeRequestId, {
-                            body: { ...body, formUrlEncoded: newItems },
-                          })
-                        }
-                      />
-                    </div>
-                  )}
-                  {body.type === "none" && (
-                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
-                      This request has no body
-                    </div>
-                  )}
-                </div>
+                <BodyEditor
+                  body={body}
+                  onChange={(newBody) =>
+                    updateRequestData(activeRequestId, { body: newBody })
+                  }
+                  editorTheme={editorTheme}
+                  handleEditorDidMount={handleEditorDidMount}
+                  handleEditorMount={handleEditorMount}
+                />
               </TabsContent>
 
               <TabsContent value="pre-request" className="flex-1 min-h-0 m-0">

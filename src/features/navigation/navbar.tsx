@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 
 import { SettingsIcon, BoxIcon, SearchIcon, BookIcon } from "lucide-react";
 
-import { CommandPalette } from "./command-palette";
-import { SettingsDialog } from "./settings-dialog";
-import { DocumentationDialog } from "./documentation-dialog";
-import { Kbd, KbdGroup } from "./ui/kbd";
-import { ImportExportDialog } from "./import-export-dialog";
+import { CommandPalette } from "@/features/command-palette/command-palette";
+import { SettingsDialog } from "@/features/settings/settings-dialog";
+import { DocumentationDialog } from "@/features/documentation/documentation-dialog";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { ImportExportDialog } from "@/features/workspace/import-export-dialog";
 
 export function Navbar() {
   const [openCommand, setOpenCommand] = useState(false);

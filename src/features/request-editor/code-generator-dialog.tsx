@@ -13,11 +13,11 @@ import {
   generateCurl,
   generateJsFetch,
   generatePythonRequests,
-} from "@/lib/code-generators";
+} from "@/features/request-editor/utils/code-generators";
 import { Editor } from "@monaco-editor/react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTheme } from "@/components/theme-provider";
-import { substituteVariables } from "@/lib/utils";
+import { useTheme } from "@/features/theme/theme-provider";
+import { substituteVariables } from "@/features/scripting/utils/variable-substitution";
 import { VesperTheme } from "./themes/vesper";
 import { VesperLightTheme } from "./themes/vesper-light";
 import { type Monaco } from "@monaco-editor/react";

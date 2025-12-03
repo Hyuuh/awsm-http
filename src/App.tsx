@@ -1,10 +1,17 @@
+import { Suspense, lazy } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { Sidebar } from "@/features/sidebar/sidebar";
-import { RequestEditor } from "@/features/request-editor/request-editor";
+import { RocketIcon } from "lucide-react";
+
+const RequestEditor = lazy(() =>
+  import("@/features/request-editor/request-editor").then((module) => ({
+    default: module.RequestEditor,
+  }))
+);
 
 function App() {
   return (
@@ -17,7 +24,18 @@ function App() {
       </ResizablePanel>
       <ResizableHandle withHandle className="bg-primary/30" />
       <ResizablePanel defaultSize={75}>
-        <RequestEditor />
+        <Suspense
+          fallback={
+            <div className="h-full flex items-center justify-center text-muted-foreground">
+              <div className="flex flex-col items-center gap-2 animate-pulse">
+                <RocketIcon className="h-8 w-8" />
+                <span className="text-sm">Loading editor...</span>
+              </div>
+            </div>
+          }
+        >
+          <RequestEditor />
+        </Suspense>
       </ResizablePanel>
     </ResizablePanelGroup>
   );

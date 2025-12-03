@@ -1,5 +1,5 @@
 import { RequestData, ResponseData, TestResult } from "@/types";
-import { getFaker } from "@/services/faker-service";
+import { getFaker } from "@/features/scripting/services/faker-service";
 
 interface ScriptContext {
   request?: RequestData;

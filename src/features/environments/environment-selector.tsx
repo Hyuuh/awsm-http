@@ -1,4 +1,4 @@
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import {
   Select,
   SelectContent,

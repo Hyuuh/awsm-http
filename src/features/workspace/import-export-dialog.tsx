@@ -18,11 +18,11 @@ import {
   FileJsonIcon,
   ChevronRightIcon,
 } from "lucide-react";
-import { useWorkspaceStore } from "@/stores/workspace-store";
+import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import { v4 as uuidv4 } from "uuid";
 import { RequestData } from "@/types";
 import { toast } from "sonner";
-import { Separator } from "./ui/separator";
+import { Separator } from "@/components/ui/separator";
 
 interface ImportExportDialogProps {
   children: React.ReactNode;
