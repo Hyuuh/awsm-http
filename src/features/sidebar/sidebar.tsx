@@ -1,7 +1,7 @@
 import { useWorkspaceStore } from "@/stores/workspace-store";
 import { SidebarItem } from "./sidebar-item";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { PlusIcon, FolderPlusIcon, FilePlusIcon, BoxIcon } from "lucide-react";
+import { PlusIcon, FolderPlusIcon, FilePlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,12 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 import { EnvironmentSelector } from "../environments/environment-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HistorySidebar } from "./history-sidebar";

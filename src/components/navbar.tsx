@@ -3,14 +3,7 @@ import { Button } from "@/components/ui/button";
 
 import { SettingsIcon, BoxIcon, SearchIcon } from "lucide-react";
 import { useWorkspaceStore } from "@/stores/workspace-store";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+
 import { CommandPalette } from "./command-palette";
 import { SettingsDialog } from "./settings-dialog";
 import { Kbd, KbdGroup } from "./ui/kbd";
@@ -52,31 +45,6 @@ export function Navbar() {
               </div>
               <span>awsm-http</span>
             </div>
-
-            <Breadcrumb className="hidden xl:flex">
-              <BreadcrumbList>
-                {path.length > 0 ? (
-                  path.map((node, index) => (
-                    <BreadcrumbItem key={node.id}>
-                      {index < path.length - 1 ? (
-                        <>
-                          <BreadcrumbLink className="cursor-pointer">
-                            {node.name}
-                          </BreadcrumbLink>
-                          <BreadcrumbSeparator />
-                        </>
-                      ) : (
-                        <BreadcrumbPage>{node.name}</BreadcrumbPage>
-                      )}
-                    </BreadcrumbItem>
-                  ))
-                ) : (
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Select a request</BreadcrumbPage>
-                  </BreadcrumbItem>
-                )}
-              </BreadcrumbList>
-            </Breadcrumb>
           </div>
 
           <div className="flex items-center justify-center ">
