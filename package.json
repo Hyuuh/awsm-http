@@ -1,7 +1,11 @@
 {
   "name": "awsm-http",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.3-alpha",
+  "author": {
+    "name": "Hyuuh",
+    "url": "https://github.com/Hyuuh"
+  },
   "type": "module",
   "license": "MIT",
   "scripts": {
