@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CommandDialog,
   CommandEmpty,
@@ -63,53 +64,55 @@ export function CommandPalette({
         value={search}
         onValueChange={setSearch}
       />
-      <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+      <CommandList className="overflow-hidden">
+        <ScrollArea className="h-[300px]">
+          <CommandEmpty>No results found.</CommandEmpty>
 
-        <CommandGroup heading="Requests">
-          {requests.map((node) => (
-            <CommandItem key={node.id} onSelect={() => handleSelect(node)}>
-              <FileJsonIcon className="mr-2 h-4 w-4" />
-              <span>{node.name}</span>
+          <CommandGroup heading="Requests">
+            {requests.map((node) => (
+              <CommandItem key={node.id} onSelect={() => handleSelect(node)}>
+                <FileJsonIcon className="mr-2 h-4 w-4" />
+                <span>{node.name}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          <CommandGroup heading="Folders">
+            {collections.map((node) => (
+              <CommandItem key={node.id} onSelect={() => handleSelect(node)}>
+                <FolderIcon className="mr-2 h-4 w-4" />
+                <span>{node.name}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          <CommandGroup heading="Workspaces">
+            {workspaces.map((node) => (
+              <CommandItem key={node.id} onSelect={() => handleSelect(node)}>
+                <BoxIcon className="mr-2 h-4 w-4" />
+                <span>{node.name}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          <CommandGroup heading="Settings">
+            <CommandItem
+              onSelect={() => {
+                onOpenSettings();
+                onOpenChange(false);
+              }}
+            >
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              <span>Settings</span>
             </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        <CommandGroup heading="Folders">
-          {collections.map((node) => (
-            <CommandItem key={node.id} onSelect={() => handleSelect(node)}>
-              <FolderIcon className="mr-2 h-4 w-4" />
-              <span>{node.name}</span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        <CommandGroup heading="Workspaces">
-          {workspaces.map((node) => (
-            <CommandItem key={node.id} onSelect={() => handleSelect(node)}>
-              <BoxIcon className="mr-2 h-4 w-4" />
-              <span>{node.name}</span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandSeparator />
-
-        <CommandGroup heading="Settings">
-          <CommandItem
-            onSelect={() => {
-              onOpenSettings();
-              onOpenChange(false);
-            }}
-          >
-            <SettingsIcon className="mr-2 h-4 w-4" />
-            <span>Settings</span>
-          </CommandItem>
-        </CommandGroup>
+          </CommandGroup>
+        </ScrollArea>
       </CommandList>
     </CommandDialog>
   );
