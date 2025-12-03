@@ -6,6 +6,7 @@ import { VesperLightTheme } from "./themes/vesper-light";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 import { useState, useEffect } from "react";
+import { TypeGeneratorDialog } from "./type-generator-dialog";
 
 interface ResponseViewerProps {
   response: ResponseData;
@@ -21,6 +22,8 @@ export function ResponseViewer({ response }: ResponseViewerProps) {
 
   const isSuccess = response.status >= 200 && response.status < 300;
   const isError = response.status >= 400;
+
+  const isJson = typeof response.body === "object" && response.body !== null;
 
   return (
     <div className="flex flex-col h-full">
@@ -48,6 +51,7 @@ export function ResponseViewer({ response }: ResponseViewerProps) {
           </TabsList>
 
           <div className="flex items-center gap-4 text-xs">
+            {isJson && <TypeGeneratorDialog json={response.body} />}
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Status:</span>
               <span

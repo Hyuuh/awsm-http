@@ -81,6 +81,7 @@ import {
 } from "@/components/ui/empty";
 import { substituteVariables } from "@/lib/utils";
 import { VariableInput } from "@/components/variable-input";
+import { CodeGeneratorDialog } from "./code-generator-dialog";
 
 // --- Helper Components ---
 
@@ -351,6 +352,17 @@ export function RequestEditor() {
 
   const [isLoading, setIsLoading] = useState(false);
 
+  // Prepare variables for substitution
+  const activeEnv = environments.find((e) => e.id === activeEnvironmentId);
+  const variables: Record<string, string> = {};
+  if (activeEnv) {
+    activeEnv.variables.forEach((v) => {
+      if (v.enabled) {
+        variables[v.key] = v.value;
+      }
+    });
+  }
+
   if (!activeRequestId || !node || node.type !== "request" || !node.data) {
     return (
       <div className="h-full flex flex-col">
@@ -385,17 +397,6 @@ export function RequestEditor() {
   const handleSend = async () => {
     if (!node.data) return;
     setIsLoading(true);
-
-    // Prepare variables
-    const activeEnv = environments.find((e) => e.id === activeEnvironmentId);
-    const variables: Record<string, string> = {};
-    if (activeEnv) {
-      activeEnv.variables.forEach((v) => {
-        if (v.enabled) {
-          variables[v.key] = v.value;
-        }
-      });
-    }
 
     // Ensure we pass the full data structure including defaults if missing
     const rawRequestData = {
@@ -633,6 +634,8 @@ export function RequestEditor() {
             </>
           )}
         </Button>
+
+        <CodeGeneratorDialog request={node.data} variables={variables} />
       </div>
 
       {/* Main Content Area */}
