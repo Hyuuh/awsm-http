@@ -1,9 +1,11 @@
 import { RequestData, ResponseData } from "@/types";
+import { getFaker } from "@/services/faker-service";
 
 interface ScriptContext {
   request?: RequestData;
   response?: ResponseData;
   variables: Record<string, string>;
+  fakerLocale?: string;
 }
 
 interface ScriptResult {
@@ -20,6 +22,7 @@ export class ScriptExecutor {
 
     const logs: string[] = [];
     const variables = { ...context.variables };
+    const faker = getFaker(context.fakerLocale || "en");
 
     const awsm = {
       variables: {
@@ -31,6 +34,7 @@ export class ScriptExecutor {
       log: (...args: any[]) => {
         logs.push(args.map((a) => String(a)).join(" "));
       },
+      faker: faker,
       request: context.request,
       response: context.response,
     };

@@ -33,10 +33,36 @@ import { Editor, type Monaco } from "@monaco-editor/react";
 import { VesperTheme } from "./themes/vesper";
 import { VesperLightTheme } from "./themes/vesper-light";
 import { useTheme } from "@/components/theme-provider";
+import { getFaker } from "@/services/faker-service";
 
 const handleEditorDidMount = (monaco: Monaco) => {
   monaco.editor.defineTheme("Vesper", VesperTheme as any);
   monaco.editor.defineTheme("VesperLight", VesperLightTheme as any);
+
+  // Generate Faker type definition
+  const faker = getFaker("en");
+  let fakerTypeProps = "";
+
+  try {
+    const modules = Object.keys(faker).filter(
+      (k) => typeof (faker as any)[k] === "object"
+    );
+
+    modules.forEach((moduleName) => {
+      const moduleObj = (faker as any)[moduleName];
+      let methods = "";
+      Object.keys(moduleObj).forEach((methodName) => {
+        if (typeof moduleObj[methodName] === "function") {
+          methods += `      ${methodName}(): string;\n`;
+        }
+      });
+      if (methods) {
+        fakerTypeProps += `    ${moduleName}: {\n${methods}    };\n`;
+      }
+    });
+  } catch (e) {
+    console.error("Failed to generate faker types", e);
+  }
 
   // Add type definitions for 'awsm' global in JavaScript
   monaco.languages.typescript.javascriptDefaults.addExtraLib(
@@ -73,6 +99,10 @@ const handleEditorDidMount = (monaco: Monaco) => {
         body: any;
         rawBody: string;
       };
+      /** Faker instance for generating random data */
+      faker: {
+${fakerTypeProps}
+      };
     };
     `,
     "ts:filename/awsm.d.ts"
@@ -80,7 +110,7 @@ const handleEditorDidMount = (monaco: Monaco) => {
 
   // Register completion provider for JSON
   monaco.languages.registerCompletionItemProvider("json", {
-    triggerCharacters: ["{"],
+    triggerCharacters: ["{", "."],
     provideCompletionItems: (model: any, position: any) => {
       const textUntilPosition = model.getValueInRange({
         startLineNumber: position.lineNumber,
@@ -89,21 +119,29 @@ const handleEditorDidMount = (monaco: Monaco) => {
         endColumn: position.column,
       });
 
+      // Environment variables
       if (textUntilPosition.endsWith("{{")) {
         const state = useWorkspaceStore.getState();
         const activeEnv = state.environments.find(
           (e) => e.id === state.activeEnvironmentId
         );
-        if (!activeEnv) return { suggestions: [] };
 
-        const suggestions = activeEnv.variables.map((v) => ({
-          label: v.key,
-          kind: monaco.languages.CompletionItemKind.Variable,
-          insertText: v.key + "}}",
-          detail: v.value,
-        }));
+        const suggestions: any[] = [];
+
+        if (activeEnv) {
+          suggestions.push(
+            ...activeEnv.variables.map((v) => ({
+              label: v.key,
+              kind: monaco.languages.CompletionItemKind.Variable,
+              insertText: v.key + "}}",
+              detail: v.value,
+            }))
+          );
+        }
+
         return { suggestions };
       }
+
       return { suggestions: [] };
     },
   });
@@ -124,6 +162,7 @@ import {
 import { substituteVariables } from "@/lib/utils";
 import { VariableInput } from "@/components/variable-input";
 import { CodeGeneratorDialog } from "./code-generator-dialog";
+import { FakerGeneratorDialog } from "./faker-generator-dialog";
 
 // --- Helper Components ---
 
@@ -364,6 +403,8 @@ function AuthEditor({
 
 export function RequestEditor() {
   const [is2XL, setIs2XL] = useState(false);
+  const [isFakerDialogOpen, setIsFakerDialogOpen] = useState(false);
+  const [activeEditor, setActiveEditor] = useState<any>(null);
 
   const { theme } = useTheme();
 
@@ -392,6 +433,7 @@ export function RequestEditor() {
   const activeEnvironmentId = useWorkspaceStore(
     (state) => state.activeEnvironmentId
   );
+  const fakerLocale = useWorkspaceStore((state) => state.fakerLocale);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -447,6 +489,7 @@ export function RequestEditor() {
       const result = ScriptExecutor.execute(node.data.preRequestScript, {
         variables: currentVariables,
         request: node.data,
+        fakerLocale,
       });
 
       if (result.error) {
@@ -468,32 +511,37 @@ export function RequestEditor() {
     // Substitute variables
     const requestData = {
       ...rawRequestData,
-      url: substituteVariables(rawRequestData.url, currentVariables),
+      url: substituteVariables(
+        rawRequestData.url,
+        currentVariables,
+        fakerLocale
+      ),
       headers: rawRequestData.headers.map((h) => ({
         ...h,
-        key: substituteVariables(h.key, currentVariables),
-        value: substituteVariables(h.value, currentVariables),
+        key: substituteVariables(h.key, currentVariables, fakerLocale),
+        value: substituteVariables(h.value, currentVariables, fakerLocale),
       })),
       params: rawRequestData.params.map((p) => ({
         ...p,
-        key: substituteVariables(p.key, currentVariables),
-        value: substituteVariables(p.value, currentVariables),
+        key: substituteVariables(p.key, currentVariables, fakerLocale),
+        value: substituteVariables(p.value, currentVariables, fakerLocale),
       })),
       body: {
         ...rawRequestData.body,
         content: substituteVariables(
           rawRequestData.body.content,
-          currentVariables
+          currentVariables,
+          fakerLocale
         ),
         formData: rawRequestData.body.formData?.map((f) => ({
           ...f,
-          key: substituteVariables(f.key, currentVariables),
-          value: substituteVariables(f.value, currentVariables),
+          key: substituteVariables(f.key, currentVariables, fakerLocale),
+          value: substituteVariables(f.value, currentVariables, fakerLocale),
         })),
         formUrlEncoded: rawRequestData.body.formUrlEncoded?.map((f) => ({
           ...f,
-          key: substituteVariables(f.key, currentVariables),
-          value: substituteVariables(f.value, currentVariables),
+          key: substituteVariables(f.key, currentVariables, fakerLocale),
+          value: substituteVariables(f.value, currentVariables, fakerLocale),
         })),
       },
       auth: {
@@ -502,11 +550,13 @@ export function RequestEditor() {
           ? {
               username: substituteVariables(
                 rawRequestData.auth.basic.username || "",
-                currentVariables
+                currentVariables,
+                fakerLocale
               ),
               password: substituteVariables(
                 rawRequestData.auth.basic.password || "",
-                currentVariables
+                currentVariables,
+                fakerLocale
               ),
             }
           : undefined,
@@ -514,7 +564,8 @@ export function RequestEditor() {
           ? {
               token: substituteVariables(
                 rawRequestData.auth.bearer.token || "",
-                currentVariables
+                currentVariables,
+                fakerLocale
               ),
             }
           : undefined,
@@ -523,11 +574,13 @@ export function RequestEditor() {
               ...rawRequestData.auth.apikey,
               key: substituteVariables(
                 rawRequestData.auth.apikey.key || "",
-                currentVariables
+                currentVariables,
+                fakerLocale
               ),
               value: substituteVariables(
                 rawRequestData.auth.apikey.value || "",
-                currentVariables
+                currentVariables,
+                fakerLocale
               ),
             }
           : undefined,
@@ -544,6 +597,7 @@ export function RequestEditor() {
           variables: currentVariables,
           request: requestData,
           response: res,
+          fakerLocale,
         });
 
         if (result.error) {
@@ -682,6 +736,34 @@ export function RequestEditor() {
     });
   };
 
+  const handleEditorMount = (editor: any, monaco: any) => {
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyK, () => {
+      setActiveEditor(editor);
+      setIsFakerDialogOpen(true);
+    });
+  };
+
+  const handleFakerInsert = (text: string) => {
+    if (activeEditor) {
+      const position = activeEditor.getPosition();
+      if (position) {
+        activeEditor.executeEdits("faker-generator", [
+          {
+            range: {
+              startLineNumber: position.lineNumber,
+              startColumn: position.column,
+              endLineNumber: position.lineNumber,
+              endColumn: position.column,
+            },
+            text: text,
+            forceMoveMarkers: true,
+          },
+        ]);
+        activeEditor.focus();
+      }
+    }
+  };
+
   return (
     <div className="h-full flex flex-col">
       <RequestTabs />
@@ -734,7 +816,11 @@ export function RequestEditor() {
           )}
         </Button>
 
-        <CodeGeneratorDialog request={node.data} variables={variables} />
+        <CodeGeneratorDialog
+          request={node.data}
+          variables={variables}
+          fakerLocale={fakerLocale}
+        />
       </div>
 
       {/* Main Content Area */}
@@ -892,6 +978,7 @@ export function RequestEditor() {
                       }
                       theme={theme === "dark" ? "Vesper" : "VesperLight"}
                       beforeMount={handleEditorDidMount}
+                      onMount={handleEditorMount}
                       options={{
                         fontSize: 14,
                         fontFamily: "Jetbrains-Mono",
@@ -926,6 +1013,7 @@ export function RequestEditor() {
                       }
                       theme={theme === "dark" ? "Vesper" : "VesperLight"}
                       beforeMount={handleEditorDidMount}
+                      onMount={handleEditorMount}
                       options={{
                         fontSize: 14,
                         fontFamily: "Jetbrains-Mono",
@@ -1043,6 +1131,12 @@ export function RequestEditor() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      <FakerGeneratorDialog
+        open={isFakerDialogOpen}
+        onOpenChange={setIsFakerDialogOpen}
+        onInsert={handleFakerInsert}
+      />
     </div>
   );
 }

@@ -7,6 +7,17 @@ import {
 import { Label } from "@/components/ui/label";
 import { useTheme } from "@/components/theme-provider";
 import { MoonIcon, SunIcon, LaptopIcon } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { useWorkspaceStore } from "@/stores/workspace-store";
+import { AVAILABLE_LOCALES } from "@/services/faker-service";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -15,6 +26,9 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { theme, setTheme } = useTheme();
+  const [activeTab, setActiveTab] = useState("appearance");
+  const fakerLocale = useWorkspaceStore((state) => state.fakerLocale);
+  const setFakerLocale = useWorkspaceStore((state) => state.setFakerLocale);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -24,67 +38,111 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <div className="w-[200px] border-r bg-muted/30 p-4">
             <h2 className="font-semibold mb-4 px-2">Settings</h2>
             <div className="space-y-1">
-              <div className="px-2 py-1.5 text-sm font-medium bg-accent text-accent-foreground rounded-md cursor-pointer">
+              <div
+                className={cn(
+                  "px-2 py-1.5 text-sm font-medium rounded-md cursor-pointer",
+                  activeTab === "appearance"
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-muted"
+                )}
+                onClick={() => setActiveTab("appearance")}
+              >
                 Appearance
               </div>
-              {/* Add more settings tabs here later */}
+              <div
+                className={cn(
+                  "px-2 py-1.5 text-sm font-medium rounded-md cursor-pointer",
+                  activeTab === "general"
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-muted"
+                )}
+                onClick={() => setActiveTab("general")}
+              >
+                General
+              </div>
             </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 p-6">
-            <DialogHeader className="mb-6">
-              <DialogTitle>Appearance</DialogTitle>
-            </DialogHeader>
+            {activeTab === "appearance" && (
+              <>
+                <DialogHeader className="mb-6">
+                  <DialogTitle>Appearance</DialogTitle>
+                </DialogHeader>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Theme</Label>
-                <div className="grid 2xl:grid-cols-3 gap-4 grid-cols-2">
-                  <div
-                    className={`flex flex-col items-center gap-2 cursor-pointer p-2 rounded-md border-2 ${
-                      theme === "light"
-                        ? "border-primary"
-                        : "border-transparent hover:bg-muted"
-                    }`}
-                    onClick={() => setTheme("light")}
-                  >
-                    <div className="h-20 w-32 rounded-md bg-[#f0f0f0] border shadow-sm flex items-center justify-center">
-                      <SunIcon className="text-orange-500" />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Theme</Label>
+                    <div className="grid 2xl:grid-cols-3 gap-4 grid-cols-2">
+                      <div
+                        className={`flex flex-col items-center gap-2 cursor-pointer p-2 rounded-md border-2 ${
+                          theme === "light"
+                            ? "border-primary"
+                            : "border-transparent hover:bg-muted"
+                        }`}
+                        onClick={() => setTheme("light")}
+                      >
+                        <SunIcon className="h-6 w-6" />
+                        <span className="text-sm font-medium">Light</span>
+                      </div>
+                      <div
+                        className={`flex flex-col items-center gap-2 cursor-pointer p-2 rounded-md border-2 ${
+                          theme === "dark"
+                            ? "border-primary"
+                            : "border-transparent hover:bg-muted"
+                        }`}
+                        onClick={() => setTheme("dark")}
+                      >
+                        <MoonIcon className="h-6 w-6" />
+                        <span className="text-sm font-medium">Dark</span>
+                      </div>
+                      <div
+                        className={`flex flex-col items-center gap-2 cursor-pointer p-2 rounded-md border-2 ${
+                          theme === "system"
+                            ? "border-primary"
+                            : "border-transparent hover:bg-muted"
+                        }`}
+                        onClick={() => setTheme("system")}
+                      >
+                        <LaptopIcon className="h-6 w-6" />
+                        <span className="text-sm font-medium">System</span>
+                      </div>
                     </div>
-                    <span className="text-xs font-medium">Light</span>
-                  </div>
-
-                  <div
-                    className={`flex flex-col items-center gap-2 cursor-pointer p-2 rounded-md border-2 ${
-                      theme === "dark"
-                        ? "border-primary"
-                        : "border-transparent hover:bg-muted"
-                    }`}
-                    onClick={() => setTheme("dark")}
-                  >
-                    <div className="h-20 w-32 rounded-md bg-[#1e1e1e] border shadow-sm flex items-center justify-center">
-                      <MoonIcon className="text-blue-400" />
-                    </div>
-                    <span className="text-xs font-medium">Dark</span>
-                  </div>
-
-                  <div
-                    className={`flex flex-col items-center gap-2 cursor-pointer p-2 rounded-md border-2 ${
-                      theme === "system"
-                        ? "border-primary"
-                        : "border-transparent hover:bg-muted"
-                    }`}
-                    onClick={() => setTheme("system")}
-                  >
-                    <div className="h-20 w-32 rounded-md bg-linear-to-r from-[#f0f0f0] to-[#1e1e1e] border shadow-sm flex items-center justify-center">
-                      <LaptopIcon className="text-muted-foreground mix-blend-difference" />
-                    </div>
-                    <span className="text-xs font-medium">System</span>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
+
+            {activeTab === "general" && (
+              <>
+                <DialogHeader className="mb-6">
+                  <DialogTitle>General</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Faker Locale</Label>
+                    <Select value={fakerLocale} onValueChange={setFakerLocale}>
+                      <SelectTrigger className="w-[280px]">
+                        <SelectValue placeholder="Select a locale" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AVAILABLE_LOCALES.map((locale) => (
+                          <SelectItem key={locale.value} value={locale.value}>
+                            {locale.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      Select the language for generated fake data (e.g. names,
+                      addresses).
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </DialogContent>

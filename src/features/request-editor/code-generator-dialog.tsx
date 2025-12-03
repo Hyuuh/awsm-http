@@ -30,11 +30,13 @@ const handleEditorDidMount = (monaco: Monaco) => {
 interface CodeGeneratorDialogProps {
   request: RequestData;
   variables?: Record<string, string>;
+  fakerLocale?: string;
 }
 
 export function CodeGeneratorDialog({
   request: rawRequest,
   variables = {},
+  fakerLocale = "en",
 }: CodeGeneratorDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -44,29 +46,33 @@ export function CodeGeneratorDialog({
   // Substitute variables in the request data
   const request: RequestData = {
     ...rawRequest,
-    url: substituteVariables(rawRequest.url, variables),
+    url: substituteVariables(rawRequest.url, variables, fakerLocale),
     headers: rawRequest.headers.map((h) => ({
       ...h,
-      key: substituteVariables(h.key, variables),
-      value: substituteVariables(h.value, variables),
+      key: substituteVariables(h.key, variables, fakerLocale),
+      value: substituteVariables(h.value, variables, fakerLocale),
     })),
     params: rawRequest.params.map((p) => ({
       ...p,
-      key: substituteVariables(p.key, variables),
-      value: substituteVariables(p.value, variables),
+      key: substituteVariables(p.key, variables, fakerLocale),
+      value: substituteVariables(p.value, variables, fakerLocale),
     })),
     body: {
       ...rawRequest.body,
-      content: substituteVariables(rawRequest.body.content, variables),
+      content: substituteVariables(
+        rawRequest.body.content,
+        variables,
+        fakerLocale
+      ),
       formData: rawRequest.body.formData?.map((f) => ({
         ...f,
-        key: substituteVariables(f.key, variables),
-        value: substituteVariables(f.value, variables),
+        key: substituteVariables(f.key, variables, fakerLocale),
+        value: substituteVariables(f.value, variables, fakerLocale),
       })),
       formUrlEncoded: rawRequest.body.formUrlEncoded?.map((f) => ({
         ...f,
-        key: substituteVariables(f.key, variables),
-        value: substituteVariables(f.value, variables),
+        key: substituteVariables(f.key, variables, fakerLocale),
+        value: substituteVariables(f.value, variables, fakerLocale),
       })),
     },
     auth: {
@@ -75,11 +81,13 @@ export function CodeGeneratorDialog({
         ? {
             username: substituteVariables(
               rawRequest.auth.basic.username || "",
-              variables
+              variables,
+              fakerLocale
             ),
             password: substituteVariables(
               rawRequest.auth.basic.password || "",
-              variables
+              variables,
+              fakerLocale
             ),
           }
         : undefined,
@@ -87,7 +95,8 @@ export function CodeGeneratorDialog({
         ? {
             token: substituteVariables(
               rawRequest.auth.bearer.token || "",
-              variables
+              variables,
+              fakerLocale
             ),
           }
         : undefined,
@@ -96,11 +105,13 @@ export function CodeGeneratorDialog({
             ...rawRequest.auth.apikey,
             key: substituteVariables(
               rawRequest.auth.apikey.key || "",
-              variables
+              variables,
+              fakerLocale
             ),
             value: substituteVariables(
               rawRequest.auth.apikey.value || "",
-              variables
+              variables,
+              fakerLocale
             ),
           }
         : undefined,

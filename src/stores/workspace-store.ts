@@ -20,6 +20,7 @@ export interface WorkspaceState {
   environments: Environment[];
   activeEnvironmentId: string | null;
   history: HistoryItem[];
+  fakerLocale: string;
 }
 
 interface WorkspaceActions {
@@ -48,6 +49,9 @@ interface WorkspaceActions {
   addToHistory: (item: Omit<HistoryItem, "id">) => void;
   clearHistory: () => void;
   openHistoryItem: (item: HistoryItem) => void;
+
+  // Settings actions
+  setFakerLocale: (locale: string) => void;
 
   initializeMockData: () => void;
   importWorkspace: (data: {
@@ -98,6 +102,11 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
       environments: [],
       activeEnvironmentId: null,
       history: [],
+      fakerLocale: "en",
+
+      setFakerLocale: (locale) => {
+        set({ fakerLocale: locale });
+      },
 
       addToHistory: (item) => {
         set((state) => ({
