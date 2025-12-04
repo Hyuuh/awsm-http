@@ -98,7 +98,7 @@ export const ResponseViewer = React.memo(function ResponseViewer({
               options={{
                 readOnly: true,
                 fontSize: 14,
-                fontFamily: "Jetbrains-Mono",
+                fontFamily: "JetBrains Mono",
                 fontLigatures: true,
                 wordWrap: "on",
                 minimap: {

@@ -380,7 +380,7 @@ export function RequestEditor() {
                   beforeMount={handleEditorDidMount}
                   options={{
                     fontSize: 14,
-                    fontFamily: "Jetbrains-Mono",
+                    fontFamily: "JetBrains Mono",
                     minimap: { enabled: false },
                   }}
                 />
@@ -400,7 +400,7 @@ export function RequestEditor() {
                   beforeMount={handleEditorDidMount}
                   options={{
                     fontSize: 14,
-                    fontFamily: "Jetbrains-Mono",
+                    fontFamily: "JetBrains Mono",
                     minimap: { enabled: false },
                   }}
                 />

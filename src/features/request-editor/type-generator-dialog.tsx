@@ -83,7 +83,7 @@ export function TypeGeneratorDialog({ json }: TypeGeneratorDialogProps) {
               readOnly: true,
               minimap: { enabled: false },
               fontSize: 13,
-              fontFamily: "Jetbrains-Mono",
+              fontFamily: "JetBrains Mono",
               scrollBeyondLastLine: false,
             }}
           />

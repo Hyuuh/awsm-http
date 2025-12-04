@@ -139,7 +139,7 @@ export const BodyEditor = React.memo(function BodyEditor({
             onMount={handleEditorMount}
             options={{
               fontSize: 14,
-              fontFamily: "Jetbrains-Mono",
+              fontFamily: "JetBrains Mono",
               fontLigatures: true,
               wordWrap: "on",
               minimap: {
@@ -170,7 +170,7 @@ export const BodyEditor = React.memo(function BodyEditor({
             onMount={handleEditorMount}
             options={{
               fontSize: 14,
-              fontFamily: "Jetbrains-Mono",
+              fontFamily: "JetBrains Mono",
               fontLigatures: true,
               wordWrap: "on",
               minimap: {
