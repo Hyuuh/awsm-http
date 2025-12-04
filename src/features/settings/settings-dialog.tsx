@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -49,6 +50,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [activeTab, setActiveTab] = useState("general");
   const fakerLocale = useWorkspaceStore((state) => state.fakerLocale);
   const setFakerLocale = useWorkspaceStore((state) => state.setFakerLocale);
+  const serverPort = useWorkspaceStore((state) => state.serverPort);
+  const setServerPort = useWorkspaceStore((state) => state.setServerPort);
+  const defaultPageSize = useWorkspaceStore((state) => state.defaultPageSize);
+  const setDefaultPageSize = useWorkspaceStore(
+    (state) => state.setDefaultPageSize
+  );
   const initializeMockData = useWorkspaceStore(
     (state) => state.initializeMockData
   );
@@ -89,11 +96,61 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               >
                 Appearance
               </div>
+              <div
+                className={cn(
+                  "px-2 py-1.5 text-sm font-medium rounded-md cursor-pointer",
+                  activeTab === "server"
+                    ? "bg-accent text-accent-foreground"
+                    : "hover:bg-muted"
+                )}
+                onClick={() => setActiveTab("server")}
+              >
+                Server
+              </div>
             </div>
           </div>
 
           {/* Content */}
           <div className="flex-1 p-6">
+            {activeTab === "server" && (
+              <>
+                <DialogHeader className="mb-6">
+                  <DialogTitle>Server Configuration</DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Server Port</Label>
+                    <Input
+                      type="number"
+                      value={serverPort}
+                      onChange={(e) => setServerPort(Number(e.target.value))}
+                      className="w-[280px]"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      The port where the mock server will run.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>API Default Page Size</Label>
+                    <Input
+                      type="number"
+                      value={defaultPageSize}
+                      onChange={(e) =>
+                        setDefaultPageSize(Number(e.target.value))
+                      }
+                      className="w-[280px]"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Default number of items returned by the API when no
+                      pageSize is specified.
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+
             {activeTab === "appearance" && (
               <>
                 <DialogHeader className="mb-6">

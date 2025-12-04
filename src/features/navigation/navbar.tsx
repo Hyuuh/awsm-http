@@ -8,6 +8,7 @@ import { SettingsDialog } from "@/features/settings/settings-dialog";
 import { DocumentationDialog } from "@/features/documentation/documentation-dialog";
 import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import { ImportExportDialog } from "@/features/workspace/import-export-dialog";
+import ServerMock from "../server/server-mock";
 
 export function Navbar() {
   const [openCommand, setOpenCommand] = useState(false);
@@ -51,6 +52,7 @@ export function Navbar() {
                 Import/Export
               </Button>
             </ImportExportDialog>
+            <ServerMock />
             <Button
               variant="outline"
               size="icon"

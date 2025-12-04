@@ -81,6 +81,9 @@ export interface RequestData {
   body: RequestBody;
   preRequestScript?: string;
   testScript?: string;
+  paramsMode?: "list" | "qs";
+  paramsEncodeValuesOnly?: boolean;
+  paramsQsContent?: string;
 }
 
 export interface TestResult {

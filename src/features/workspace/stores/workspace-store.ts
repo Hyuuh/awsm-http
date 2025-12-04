@@ -23,6 +23,8 @@ export interface WorkspaceState {
   globalVariables: EnvironmentVariable[];
   history: HistoryItem[];
   fakerLocale: string;
+  serverPort: number;
+  defaultPageSize: number;
 }
 
 interface WorkspaceActions {
@@ -64,6 +66,8 @@ interface WorkspaceActions {
 
   // Settings actions
   setFakerLocale: (locale: string) => void;
+  setServerPort: (port: number) => void;
+  setDefaultPageSize: (size: number) => void;
 
   initializeMockData: (force?: boolean) => void;
   importWorkspace: (data: {
@@ -121,9 +125,19 @@ export const useWorkspaceStore = create<WorkspaceState & WorkspaceActions>()(
       globalVariables: [],
       history: [],
       fakerLocale: "en",
+      serverPort: 3000,
+      defaultPageSize: 10,
 
       setFakerLocale: (locale) => {
         set({ fakerLocale: locale });
+      },
+
+      setServerPort: (port) => {
+        set({ serverPort: port });
+      },
+
+      setDefaultPageSize: (size) => {
+        set({ defaultPageSize: size });
       },
 
       addToHistory: (item) => {

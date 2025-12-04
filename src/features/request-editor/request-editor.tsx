@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useWorkspaceStore } from "@/features/workspace/stores/workspace-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayIcon, RocketIcon } from "lucide-react";
+import qs from "qs";
 
 import { RequestTabs } from "./request-tabs";
 import { ResponseViewer } from "./response-viewer";
@@ -38,6 +39,9 @@ import { AuthEditor } from "./components/auth-editor";
 import { BodyEditor } from "./components/body-editor";
 import { useRequestExecution } from "./hooks/use-request-execution";
 import { handleEditorDidMount } from "./utils/monaco-config";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export function RequestEditor() {
   const [is2XL, setIs2XL] = useState(false);
@@ -108,6 +112,9 @@ export function RequestEditor() {
     body = { type: "none", content: "" } as RequestBody,
     auth = { type: "none" },
     params = [],
+    paramsMode = "list",
+    paramsEncodeValuesOnly = false,
+    paramsQsContent = "{\n  \n}",
   } = node.data || {}; // Handle case where data might be missing if type mismatch
 
   if (!node.data) return null; // Should not happen if type check passes, but safe guard
@@ -194,6 +201,17 @@ export function RequestEditor() {
       }
     }
   };
+  const qsPreview = useMemo(() => {
+    if (paramsMode !== "qs") return "";
+    try {
+      // eslint-disable-next-line no-new-func
+      const obj = new Function("return " + paramsQsContent)();
+      return qs.stringify(obj, { encodeValuesOnly: paramsEncodeValuesOnly });
+    } catch (e) {
+      return "Error parsing object";
+    }
+  }, [paramsQsContent, paramsEncodeValuesOnly, paramsMode]);
+
   const editorTheme =
     theme === "dark" ||
     (theme === "system" &&
@@ -310,17 +328,82 @@ export function RequestEditor() {
 
               <TabsContent
                 value="params"
-                className="flex-1 min-h-0 m-0 p-4 overflow-auto"
+                className="flex-1 min-h-0 m-0 p-4 overflow-auto flex flex-col gap-4"
               >
-                <KeyValueTable
-                  items={params}
-                  onUpdate={updateParams}
-                  onAdd={addParam}
-                  onRemove={removeParam}
-                  onReorder={(newItems) =>
-                    updateRequestData(activeRequestId, { params: newItems })
-                  }
-                />
+                <div className="flex items-center justify-between">
+                  <RadioGroup
+                    value={paramsMode}
+                    onValueChange={(v) =>
+                      updateRequestData(activeRequestId, {
+                        paramsMode: v as any,
+                      })
+                    }
+                    className="flex items-center gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="list" id="mode-list" />
+                      <Label htmlFor="mode-list">Key-Value List</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="qs" id="mode-qs" />
+                      <Label htmlFor="mode-qs">QS Builder</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {paramsMode === "qs" && (
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="encode-values"
+                        checked={paramsEncodeValuesOnly}
+                        onCheckedChange={(c) =>
+                          updateRequestData(activeRequestId, {
+                            paramsEncodeValuesOnly: !!c,
+                          })
+                        }
+                      />
+                      <Label htmlFor="encode-values">Encode Values Only</Label>
+                    </div>
+                  )}
+                </div>
+
+                {paramsMode === "list" ? (
+                  <KeyValueTable
+                    items={params}
+                    onUpdate={updateParams}
+                    onAdd={addParam}
+                    onRemove={removeParam}
+                    onReorder={(newItems) =>
+                      updateRequestData(activeRequestId, { params: newItems })
+                    }
+                  />
+                ) : (
+                  <div className="flex-1 flex flex-col gap-2 min-h-0">
+                    <div className="p-2 bg-muted rounded-md text-xs font-mono break-all">
+                      <span className="text-muted-foreground select-none">
+                        Preview:{" "}
+                      </span>
+                      {qsPreview}
+                    </div>
+                    <div className="flex-1 border rounded-md overflow-hidden">
+                      <Editor
+                        height="100%"
+                        defaultLanguage="javascript"
+                        theme={editorTheme}
+                        value={paramsQsContent}
+                        onChange={(value) =>
+                          updateRequestData(activeRequestId, {
+                            paramsQsContent: value || "",
+                          })
+                        }
+                        options={{
+                          minimap: { enabled: false },
+                          fontSize: 13,
+                          padding: { top: 10 },
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent

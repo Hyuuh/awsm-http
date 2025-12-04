@@ -1,5 +1,6 @@
 import { RequestData, ResponseData } from "@/types";
 import { invoke } from "@tauri-apps/api/core";
+import qs from "qs";
 
 interface RustResponse {
   status: number;
@@ -48,6 +49,34 @@ export class HttpClient {
           if (token) {
             headers["Authorization"] = `Bearer ${token}`;
           }
+        }
+      }
+
+      // Handle Params
+      if (request.paramsMode === "qs" && request.paramsQsContent) {
+        try {
+          // eslint-disable-next-line no-new-func
+          const obj = new Function("return " + request.paramsQsContent)();
+          const queryString = qs.stringify(obj, {
+            encodeValuesOnly: request.paramsEncodeValuesOnly,
+          });
+          if (queryString) {
+            request.url +=
+              (request.url.includes("?") ? "&" : "?") + queryString;
+          }
+        } catch (e) {
+          console.error("Failed to parse QS content", e);
+        }
+      } else if (request.params && request.params.length > 0) {
+        const paramsObj: Record<string, string> = {};
+        request.params.forEach((p) => {
+          if (p.enabled && p.key) {
+            paramsObj[p.key] = p.value;
+          }
+        });
+        const queryString = qs.stringify(paramsObj);
+        if (queryString) {
+          request.url += (request.url.includes("?") ? "&" : "?") + queryString;
         }
       }
 

@@ -16,6 +16,7 @@
   - **Params**: Easy-to-use key-value editor for query parameters.
   - **Auth**: Built-in support for Basic Auth, Bearer Token, API Key, and **OAuth 2.0** (Client Credentials).
   - **Body**: Support for JSON, Form Data, x-www-form-urlencoded, and Raw text/XML/HTML.
+  - **QS Builder**: Visual query string builder with support for nested objects and arrays (using `qs` syntax).
   - **Monaco Editor**: Integrated [Monaco Editor](https://microsoft.github.io/monaco-editor/) (VS Code's editor) for a powerful coding experience when editing JSON bodies.
 - **📄 Response Viewer**:
   - Syntax-highlighted JSON viewer.
@@ -32,6 +33,12 @@
 - **⚡ Keyboard First**: Designed for developer productivity.
   - **Command Palette**: `Ctrl+K` to access quick actions and Faker.
   - **Tabs**: Middle-click to close tabs.
+- **🛠️ Mock Server**:
+  - **Visual Schema Editor**: Design your database schema with a node-based graph editor.
+  - **Data Generation**: Generate realistic fake data using Faker.js.
+  - **REST API**: Auto-generated REST endpoints for your tables with pagination and filtering.
+  - **Data Editor**: Manage your mock data with a built-in spreadsheet-like editor.
+  - **Relationships**: Define Foreign Keys and relationships between tables visually.
 
 ## 🔮 Advanced Capabilities
 
