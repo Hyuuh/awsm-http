@@ -234,7 +234,7 @@ export default function ServerMock() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button size={"icon"} variant={"secondary"}>
+        <Button size={"icon"} variant={"link"}>
           <ServerIcon className="size-5" />
         </Button>
       </DialogTrigger>

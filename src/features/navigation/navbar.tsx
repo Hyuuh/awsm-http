@@ -1,8 +1,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
-import { SettingsIcon, BoxIcon, SearchIcon, BookIcon } from "lucide-react";
+import {
+  GearIcon,
+  CubeIcon,
+  MagnifyingGlassIcon,
+  BookIcon,
+  XIcon,
+  MinusIcon,
+  ArrowSquareInIcon,
+} from "@phosphor-icons/react";
 
+import { getCurrentWindow } from "@tauri-apps/api/window";
+const appWindow = getCurrentWindow();
 import { CommandPalette } from "@/features/command-palette/command-palette";
 import { SettingsDialog } from "@/features/settings/settings-dialog";
 import { DocumentationDialog } from "@/features/documentation/documentation-dialog";
@@ -17,12 +27,28 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
+      <header
+        className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 "
+        id="tauri-navbar"
+        onMouseDown={(e) => {
+          // check if is only the header (not on buttons or inputs)
+          if (
+            e.buttons === 1 &&
+            !(e.target as HTMLElement).closest(
+              "button, input, select, textarea"
+            )
+          ) {
+            e.detail === 2
+              ? appWindow.toggleMaximize()
+              : appWindow.startDragging();
+          }
+        }}
+      >
         <div className="flex h-14 items-center px-4 gap-4 justify-between">
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-2 font-bold text-lg">
               <div className="bg-primary text-primary-foreground p-1 rounded-md">
-                <BoxIcon size={20} />
+                <CubeIcon />
               </div>
               <span>awsm-http</span>
             </div>
@@ -35,7 +61,7 @@ export function Navbar() {
               onClick={() => setOpenCommand(true)}
             >
               <span className="flex gap-2 items-center">
-                <SearchIcon size={14} />
+                <MagnifyingGlassIcon />
                 Search...
               </span>
               <KbdGroup className="items-center">
@@ -48,24 +74,38 @@ export function Navbar() {
           <div className="flex items-center gap-2">
             <ImportExportDialog>
               <Button size={"sm"}>
-                <BoxIcon size={18} />
+                <ArrowSquareInIcon />
                 Import/Export
               </Button>
             </ImportExportDialog>
             <ServerMock />
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={() => setOpenDocumentation(true)}
             >
-              <BookIcon size={18} />
+              <BookIcon />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setOpenSettings(true)}
             >
-              <SettingsIcon size={18} />
+              <GearIcon />
+            </Button>
+            <Button
+              variant={"outline"}
+              size="icon-sm"
+              onClick={() => appWindow.minimize()}
+            >
+              <MinusIcon />
+            </Button>
+            <Button
+              className="bg-primary/50"
+              size="icon-sm"
+              onClick={() => appWindow.close()}
+            >
+              <XIcon />
             </Button>
           </div>
         </div>
